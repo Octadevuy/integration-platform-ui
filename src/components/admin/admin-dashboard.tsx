@@ -55,6 +55,7 @@ import {
   deactivateClient,
   getErrorMessage,
   listApiKeys,
+  listAuditEvents,
   listClients,
   removeScope,
   revokeApiKey,
@@ -63,6 +64,7 @@ import {
 } from "@/lib/admin-api"
 import type {
   ApiKeyResponse,
+  AuditEventResponse,
   ConnectionSettings,
   CreateApiKeyRequest,
   IntegrationClientResponse,
@@ -243,11 +245,11 @@ function buildKeyHistory(apiKeys: ApiKeyResponse[]): KeyHistoryEvent[] {
 
 export function AdminDashboard() {
   const queryClient = useQueryClient()
+  const initialSettings = useMemo(() => readStoredSettings(), [])
 
-  const [baseUrl, setBaseUrl] = useState(DEFAULT_BASE_URL)
-  const [adminApiKey, setAdminApiKey] = useState("")
-  const [rememberKey, setRememberKey] = useState(true)
-  const [settingsReady, setSettingsReady] = useState(false)
+  const [baseUrl, setBaseUrl] = useState(initialSettings.baseUrl)
+  const [adminApiKey, setAdminApiKey] = useState(initialSettings.adminApiKey)
+  const [rememberKey, setRememberKey] = useState(initialSettings.rememberKey)
 
   const [selectedClientCode, setSelectedClientCode] = useState<string | null>(null)
   const [selectedKeyPrefix, setSelectedKeyPrefix] = useState<string | null>(null)
@@ -258,38 +260,18 @@ export function AdminDashboard() {
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false)
   const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false)
   const [assignScopeValue, setAssignScopeValue] = useState("")
-  const [auditActions, setAuditActions] = useState<AuditAction[]>([])
 
-  const registerAuditAction = (entry: Omit<AuditAction, "id" | "at">) => {
-    setAuditActions((prev) => [
-      {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        at: new Date().toISOString(),
-        ...entry,
-      },
-      ...prev,
-    ])
+  const registerAuditAction = (_entry: Omit<AuditAction, "id" | "at">) => {
+    void _entry
   }
 
   useEffect(() => {
-    const storedSettings = readStoredSettings()
-    setBaseUrl(storedSettings.baseUrl)
-    setAdminApiKey(storedSettings.adminApiKey)
-    setRememberKey(storedSettings.rememberKey)
-    setSettingsReady(true)
-  }, [])
-
-  useEffect(() => {
-    if (!settingsReady) {
-      return
-    }
-
     const payload = JSON.stringify(
       buildSettings(baseUrl, rememberKey ? adminApiKey : "", rememberKey),
     )
 
     window.localStorage.setItem(STORAGE_KEY, payload)
-  }, [adminApiKey, baseUrl, rememberKey, settingsReady])
+  }, [adminApiKey, baseUrl, rememberKey])
 
   const settings = useMemo(
     () => buildSettings(baseUrl, adminApiKey, rememberKey),
@@ -350,13 +332,30 @@ export function AdminDashboard() {
 
   const keyHistory = useMemo(() => buildKeyHistory(apiKeys), [apiKeys])
 
-  const scopedAuditActions = useMemo(
-    () =>
-      effectiveSelectedClientCode
-        ? auditActions.filter((entry) => entry.target.startsWith(effectiveSelectedClientCode))
-        : auditActions,
-    [auditActions, effectiveSelectedClientCode],
+  const auditEventsQuery = useQuery({
+    queryKey: [
+      "audit-events",
+      settings.baseUrl,
+      settings.adminApiKey,
+      effectiveSelectedClientCode,
+    ],
+    queryFn: () =>
+      listAuditEvents(settings, {
+        clientCode: effectiveSelectedClientCode ?? undefined,
+        size: 100,
+      }),
+    enabled: canConnect,
+  })
+
+  const scopedAuditActions = useMemo<AuditEventResponse[]>(
+    () => auditEventsQuery.data ?? [],
+    [auditEventsQuery.data],
   )
+
+  const invalidateAuditEvents = () =>
+    queryClient.invalidateQueries({
+      queryKey: ["audit-events", settings.baseUrl, settings.adminApiKey],
+    })
 
   const refreshData = async () => {
     await queryClient.invalidateQueries({ queryKey: ["clients", settings.baseUrl, settings.adminApiKey] })
@@ -366,6 +365,8 @@ export function AdminDashboard() {
         queryKey: ["api-keys", settings.baseUrl, settings.adminApiKey, effectiveSelectedClientCode],
       })
     }
+
+    await invalidateAuditEvents()
   }
 
   const createClientMutation = useMutation({
@@ -645,12 +646,12 @@ export function AdminDashboard() {
     [],
   )
 
-  const auditColumns = useMemo<ColumnDef<AuditAction>[]>(
+  const auditColumns = useMemo<ColumnDef<AuditEventResponse>[]>(
     () => [
       {
-        accessorKey: "at",
+        accessorKey: "occurredAt",
         header: "Fecha",
-        cell: ({ row }) => formatInstant(row.original.at),
+        cell: ({ row }) => formatInstant(row.original.occurredAt),
       },
       {
         accessorKey: "action",
@@ -658,12 +659,36 @@ export function AdminDashboard() {
         cell: ({ row }) => <Badge variant="outline">{row.original.action}</Badge>,
       },
       {
-        accessorKey: "target",
+        accessorKey: "outcome",
+        header: "Resultado",
+        cell: ({ row }) => (
+          <Badge variant={row.original.outcome === "SUCCESS" ? "default" : "destructive"}>
+            {row.original.outcome}
+          </Badge>
+        ),
+      },
+      {
+        id: "actor",
+        header: "Actor",
+        cell: ({ row }) =>
+          row.original.actorClientCode
+            ? `${row.original.actorClientCode}${row.original.actorKeyPrefix ? ` (${row.original.actorKeyPrefix})` : ""}`
+            : "-",
+      },
+      {
+        id: "target",
         header: "Objetivo",
+        cell: ({ row }) => {
+          const code = row.original.targetClientCode
+          const prefix = row.original.targetKeyPrefix
+          if (!code && !prefix) return "-"
+          return `${code ?? ""}${prefix ? ` / ${prefix}` : ""}`
+        },
       },
       {
         accessorKey: "detail",
         header: "Detalle",
+        cell: ({ row }) => row.original.detail ?? "-",
       },
     ],
     [],
@@ -1061,7 +1086,7 @@ export function AdminDashboard() {
                   columns={auditColumns}
                   data={scopedAuditActions}
                   emptyMessage="Aun no hay acciones auditables registradas"
-                  getRowId={(row) => row.id}
+                  getRowId={(row) => String(row.id)}
                 />
               </div>
             </div>

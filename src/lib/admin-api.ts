@@ -1,5 +1,7 @@
 import type {
   ApiKeyResponse,
+  AuditEventQuery,
+  AuditEventResponse,
   ConnectionSettings,
   CreateApiKeyRequest,
   CreateIntegrationClientRequest,
@@ -198,4 +200,19 @@ export async function removeScope(
       method: "DELETE",
     },
   )
+}
+
+export async function listAuditEvents(
+  settings: ConnectionSettings,
+  query: AuditEventQuery = {},
+) {
+  const params = new URLSearchParams()
+  if (query.clientCode) params.set("clientCode", query.clientCode)
+  if (query.action) params.set("action", query.action)
+  if (query.from) params.set("from", query.from)
+  if (query.to) params.set("to", query.to)
+  if (typeof query.page === "number") params.set("page", String(query.page))
+  if (typeof query.size === "number") params.set("size", String(query.size))
+  const qs = params.toString()
+  return request<AuditEventResponse[]>(settings, `audit-events${qs ? `?${qs}` : ""}`)
 }
