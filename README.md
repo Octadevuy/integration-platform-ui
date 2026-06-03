@@ -23,13 +23,13 @@ Stack:
 Instalar dependencias:
 
 ```bash
-npm install
+pnpm install
 ```
 
 Levantar en local:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Abrir:
@@ -45,7 +45,7 @@ Variable opcional:
 Ejemplo:
 
 ```bash
-NEXT_PUBLIC_DEFAULT_BCU_API_URL=http://localhost:8080 npm run dev
+NEXT_PUBLIC_DEFAULT_BCU_API_URL=http://localhost:8080 pnpm dev
 ```
 
 Tambien podes definir en runtime:
@@ -71,6 +71,6 @@ e inyecta el header:
 
 ## Scripts
 
-- `npm run dev`: modo desarrollo
-- `npm run lint`: lint
-- `npm run build`: build de produccion
+- `pnpm dev`: modo desarrollo
+- `pnpm lint`: lint
+- `pnpm build`: build de produccion

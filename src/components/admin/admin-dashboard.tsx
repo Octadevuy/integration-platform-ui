@@ -244,10 +244,10 @@ function buildKeyHistory(apiKeys: ApiKeyResponse[]): KeyHistoryEvent[] {
 export function AdminDashboard() {
   const queryClient = useQueryClient()
 
-  const storedSettings = readStoredSettings()
-  const [baseUrl, setBaseUrl] = useState(storedSettings.baseUrl)
-  const [adminApiKey, setAdminApiKey] = useState(storedSettings.adminApiKey)
-  const [rememberKey, setRememberKey] = useState(storedSettings.rememberKey)
+  const [baseUrl, setBaseUrl] = useState(DEFAULT_BASE_URL)
+  const [adminApiKey, setAdminApiKey] = useState("")
+  const [rememberKey, setRememberKey] = useState(true)
+  const [settingsReady, setSettingsReady] = useState(false)
 
   const [selectedClientCode, setSelectedClientCode] = useState<string | null>(null)
   const [selectedKeyPrefix, setSelectedKeyPrefix] = useState<string | null>(null)
@@ -272,12 +272,24 @@ export function AdminDashboard() {
   }
 
   useEffect(() => {
+    const storedSettings = readStoredSettings()
+    setBaseUrl(storedSettings.baseUrl)
+    setAdminApiKey(storedSettings.adminApiKey)
+    setRememberKey(storedSettings.rememberKey)
+    setSettingsReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!settingsReady) {
+      return
+    }
+
     const payload = JSON.stringify(
       buildSettings(baseUrl, rememberKey ? adminApiKey : "", rememberKey),
     )
 
     window.localStorage.setItem(STORAGE_KEY, payload)
-  }, [adminApiKey, baseUrl, rememberKey])
+  }, [adminApiKey, baseUrl, rememberKey, settingsReady])
 
   const settings = useMemo(
     () => buildSettings(baseUrl, adminApiKey, rememberKey),
