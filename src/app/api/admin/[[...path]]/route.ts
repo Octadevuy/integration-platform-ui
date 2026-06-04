@@ -5,12 +5,9 @@ const FORWARDED_RESPONSE_HEADERS = ["content-type", "cache-control", "etag"]
 
 export const dynamic = "force-dynamic"
 
-function resolveBaseUrl(request: NextRequest) {
+function resolveBaseUrl() {
   const candidate =
-    request.headers.get("x-target-base-url") ||
-    process.env.BCU_API_BASE_URL ||
-    process.env.NEXT_PUBLIC_DEFAULT_BCU_API_URL ||
-    ""
+    process.env.BCU_API_BASE_URL || process.env.NEXT_PUBLIC_DEFAULT_BCU_API_URL || ""
 
   if (!candidate) {
     throw new Error("Missing target base URL")
@@ -26,13 +23,13 @@ function resolveBaseUrl(request: NextRequest) {
 }
 
 async function forward(request: NextRequest, path: string[]) {
-  const adminApiKey = request.headers.get("x-admin-api-key")
+  const adminApiKey = process.env.BCU_ADMIN_API_KEY || ""
 
   if (!adminApiKey) {
     return NextResponse.json(
       {
         title: "Missing admin API key",
-        detail: "Send x-admin-api-key with an admin.manage credential.",
+        detail: "Set BCU_ADMIN_API_KEY in server environment variables.",
       },
       { status: 400 },
     )
@@ -41,7 +38,7 @@ async function forward(request: NextRequest, path: string[]) {
   let targetBaseUrl: string
 
   try {
-    targetBaseUrl = resolveBaseUrl(request)
+    targetBaseUrl = resolveBaseUrl()
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Invalid target base URL"
 
@@ -75,6 +72,17 @@ async function forward(request: NextRequest, path: string[]) {
     body,
     cache: "no-store",
   })
+
+  if (response.status === 401) {
+    return NextResponse.json(
+      {
+        title: "Invalid backend admin API key",
+        detail:
+          "The backend rejected BCU_ADMIN_API_KEY. Update it in .env.local and restart pnpm dev.",
+      },
+      { status: 401 },
+    )
+  }
 
   const payload = await response.text()
   const responseHeaders = new Headers()

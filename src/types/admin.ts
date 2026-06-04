@@ -17,6 +17,11 @@ export interface ApiKeyResponse {
   scopes: string[]
 }
 
+export interface PermissionScopeResponse {
+  scope: string
+  description: string | null
+}
+
 export interface CreateIntegrationClientRequest {
   clientCode: string
   displayName: string

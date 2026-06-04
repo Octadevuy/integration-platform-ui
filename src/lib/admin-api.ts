@@ -6,6 +6,7 @@ import type {
   CreateApiKeyRequest,
   CreateIntegrationClientRequest,
   IntegrationClientResponse,
+  PermissionScopeResponse,
   ProblemDetail,
   UpdateIntegrationClientRequest,
 } from "@/types/admin"
@@ -20,10 +21,6 @@ export class ApiRequestError extends Error {
     this.status = status
     this.payload = payload
   }
-}
-
-function normalizeBaseUrl(baseUrl: string) {
-  return baseUrl.trim().replace(/\/+$/, "")
 }
 
 async function parseError(response: Response) {
@@ -44,21 +41,10 @@ async function request<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const baseUrl = normalizeBaseUrl(settings.baseUrl)
-  const adminApiKey = settings.adminApiKey.trim()
-
-  if (!baseUrl) {
-    throw new ApiRequestError("Definí la URL base de la API antes de continuar.", 400)
-  }
-
-  if (!adminApiKey) {
-    throw new ApiRequestError("Ingresá una API key con alcance admin.manage.", 400)
-  }
+  void settings
 
   const headers = new Headers(init.headers)
   headers.set("accept", "application/json")
-  headers.set("x-admin-api-key", adminApiKey)
-  headers.set("x-target-base-url", baseUrl)
 
   if (init.body) {
     headers.set("content-type", "application/json")
@@ -129,6 +115,10 @@ export async function listApiKeys(settings: ConnectionSettings, clientCode: stri
     settings,
     `${encodeURIComponent(clientCode)}/api-keys`,
   )
+}
+
+export async function listScopes(settings: ConnectionSettings) {
+  return request<PermissionScopeResponse[]>(settings, "scopes")
 }
 
 export async function createApiKey(

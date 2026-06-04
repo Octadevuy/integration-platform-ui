@@ -15,7 +15,6 @@ import {
   Power,
   RefreshCw,
   RotateCw,
-  Server,
   Shield,
   Users,
 } from "lucide-react"
@@ -48,6 +47,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -59,6 +65,7 @@ import {
   listApiKeys,
   listAuditEvents,
   listClients,
+  listScopes,
   removeScope,
   revokeApiKey,
   rotateApiKey,
@@ -67,13 +74,10 @@ import {
 import type {
   ApiKeyResponse,
   AuditEventResponse,
-  ConnectionSettings,
   CreateApiKeyRequest,
   IntegrationClientResponse,
+  PermissionScopeResponse,
 } from "@/types/admin"
-
-const STORAGE_KEY = "bcu-admin-ui:settings"
-const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_DEFAULT_BCU_API_URL || "http://localhost:8080"
 
 const createClientSchema = z.object({
   clientCode: z
@@ -93,7 +97,7 @@ const updateClientSchema = z.object({
 
 const createApiKeySchema = z.object({
   expiresAt: z.string().trim().optional(),
-  scopes: z.string().trim().optional(),
+  scope: z.string().trim().optional(),
 })
 
 type CreateClientForm = z.infer<typeof createClientSchema>
@@ -130,17 +134,6 @@ function toIsoDateTime(value?: string) {
   return date.toISOString()
 }
 
-function parseScopes(value?: string) {
-  if (!value) {
-    return []
-  }
-
-  return value
-    .split(",")
-    .map((scope) => scope.trim())
-    .filter(Boolean)
-}
-
 function formatInstant(value: string | null) {
   if (!value) {
     return "-"
@@ -153,49 +146,6 @@ function formatInstant(value: string | null) {
   }
 }
 
-function buildSettings(baseUrl: string, adminApiKey: string, rememberKey: boolean): ConnectionSettings {
-  return {
-    baseUrl,
-    adminApiKey,
-    rememberKey,
-  }
-}
-
-function readStoredSettings() {
-  if (typeof window === "undefined") {
-    return {
-      baseUrl: DEFAULT_BASE_URL,
-      adminApiKey: "",
-      rememberKey: true,
-    }
-  }
-
-  const raw = window.localStorage.getItem(STORAGE_KEY)
-
-  if (!raw) {
-    return {
-      baseUrl: DEFAULT_BASE_URL,
-      adminApiKey: "",
-      rememberKey: true,
-    }
-  }
-
-  try {
-    const saved = JSON.parse(raw) as Partial<ConnectionSettings>
-
-    return {
-      baseUrl: typeof saved.baseUrl === "string" && saved.baseUrl.trim() ? saved.baseUrl : DEFAULT_BASE_URL,
-      adminApiKey: typeof saved.adminApiKey === "string" ? saved.adminApiKey : "",
-      rememberKey: typeof saved.rememberKey === "boolean" ? saved.rememberKey : true,
-    }
-  } catch {
-    return {
-      baseUrl: DEFAULT_BASE_URL,
-      adminApiKey: "",
-      rememberKey: true,
-    }
-  }
-}
 
 function buildKeyHistory(apiKeys: ApiKeyResponse[]): KeyHistoryEvent[] {
   return apiKeys
@@ -247,11 +197,14 @@ function buildKeyHistory(apiKeys: ApiKeyResponse[]): KeyHistoryEvent[] {
 
 export function AdminDashboard() {
   const queryClient = useQueryClient()
-  const initialSettings = useMemo(() => readStoredSettings(), [])
-
-  const [baseUrl, setBaseUrl] = useState(initialSettings.baseUrl)
-  const [adminApiKey, setAdminApiKey] = useState(initialSettings.adminApiKey)
-  const [rememberKey, setRememberKey] = useState(initialSettings.rememberKey)
+  const settings = useMemo(
+    () => ({
+      baseUrl: "server-managed",
+      adminApiKey: "server-managed",
+      rememberKey: false,
+    }),
+    [],
+  )
 
   const [selectedClientCode, setSelectedClientCode] = useState<string | null>(null)
   const [selectedKeyPrefix, setSelectedKeyPrefix] = useState<string | null>(null)
@@ -267,25 +220,9 @@ export function AdminDashboard() {
     void _entry
   }
 
-  useEffect(() => {
-    const payload = JSON.stringify(
-      buildSettings(baseUrl, rememberKey ? adminApiKey : "", rememberKey),
-    )
-
-    window.localStorage.setItem(STORAGE_KEY, payload)
-  }, [adminApiKey, baseUrl, rememberKey])
-
-  const settings = useMemo(
-    () => buildSettings(baseUrl, adminApiKey, rememberKey),
-    [adminApiKey, baseUrl, rememberKey],
-  )
-
-  const canConnect = Boolean(baseUrl.trim() && adminApiKey.trim())
-
   const clientsQuery = useQuery({
     queryKey: ["clients", settings.baseUrl, settings.adminApiKey],
     queryFn: () => listClients(settings),
-    enabled: canConnect,
   })
 
   const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data])
@@ -310,7 +247,7 @@ export function AdminDashboard() {
   const apiKeysQuery = useQuery({
     queryKey: ["api-keys", settings.baseUrl, settings.adminApiKey, effectiveSelectedClientCode],
     queryFn: () => listApiKeys(settings, effectiveSelectedClientCode as string),
-    enabled: canConnect && Boolean(effectiveSelectedClientCode),
+    enabled: Boolean(effectiveSelectedClientCode),
   })
 
   const apiKeys = useMemo(() => apiKeysQuery.data ?? [], [apiKeysQuery.data])
@@ -346,13 +283,33 @@ export function AdminDashboard() {
         clientCode: effectiveSelectedClientCode ?? undefined,
         size: 100,
       }),
-    enabled: canConnect,
   })
 
   const scopedAuditActions = useMemo<AuditEventResponse[]>(
     () => auditEventsQuery.data ?? [],
     [auditEventsQuery.data],
   )
+
+  const scopesQuery = useQuery({
+    queryKey: ["available-scopes", settings.baseUrl, settings.adminApiKey],
+    queryFn: () => listScopes(settings),
+  })
+
+  const availableScopes = useMemo<PermissionScopeResponse[]>(() => scopesQuery.data ?? [], [scopesQuery.data])
+
+  const unassignedScopes = useMemo(
+    () =>
+      availableScopes.filter((scope) => !selectedKey?.scopes.includes(scope.scope)),
+    [availableScopes, selectedKey],
+  )
+
+  const effectiveAssignScopeValue = useMemo(() => {
+    if (assignScopeValue && unassignedScopes.some((scope) => scope.scope === assignScopeValue)) {
+      return assignScopeValue
+    }
+
+    return unassignedScopes[0]?.scope ?? ""
+  }, [assignScopeValue, unassignedScopes])
 
   const invalidateAuditEvents = () =>
     queryClient.invalidateQueries({
@@ -728,9 +685,21 @@ export function AdminDashboard() {
     resolver: zodResolver(createApiKeySchema),
     defaultValues: {
       expiresAt: "",
-      scopes: "debtors.read",
+      scope: "",
     },
   })
+
+  useEffect(() => {
+    if (!createKeyOpen) {
+      return
+    }
+
+    const firstScope = availableScopes[0]?.scope
+
+    if (firstScope) {
+      createApiKeyForm.setValue("scope", firstScope)
+    }
+  }, [availableScopes, createApiKeyForm, createKeyOpen])
 
   const submitCreateClient = createClientForm.handleSubmit((values) => {
     createClientMutation.mutate(values)
@@ -756,7 +725,7 @@ export function AdminDashboard() {
       clientCode: effectiveSelectedClientCode,
       payload: {
         expiresAt: toIsoDateTime(values.expiresAt),
-        scopes: parseScopes(values.scopes),
+        scopes: values.scope ? [values.scope] : [],
       },
     })
   })
@@ -766,10 +735,10 @@ export function AdminDashboard() {
       return
     }
 
-    const scope = assignScopeValue.trim()
+    const scope = effectiveAssignScopeValue.trim()
 
     if (!scope) {
-      toast.error("Ingresa un scope")
+      toast.error("Selecciona un scope")
       return
     }
 
@@ -803,7 +772,7 @@ export function AdminDashboard() {
                 className="bg-white text-slate-900 hover:bg-slate-100"
                 onClick={() => refreshData()}
                 type="button"
-                disabled={!canConnect || clientsQuery.isFetching || apiKeysQuery.isFetching}
+                disabled={clientsQuery.isFetching || apiKeysQuery.isFetching}
               >
                 {clientsQuery.isFetching || apiKeysQuery.isFetching ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -824,51 +793,6 @@ export function AdminDashboard() {
             </div>
           </div>
         </section>
-
-        <Card className="border border-cyan-100">
-          <CardHeader className="border-b border-cyan-100">
-            <CardTitle className="inline-flex items-center gap-2">
-              <Server className="size-4 text-cyan-700" />
-              Conexion al backend
-            </CardTitle>
-            <CardDescription>
-              La API key se usa solo en este navegador. Activa &quot;Recordar&quot; para persistirla localmente.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 py-4 sm:grid-cols-12">
-            <div className="sm:col-span-6">
-              <Label htmlFor="baseUrl">BCU API base URL</Label>
-              <Input
-                id="baseUrl"
-                placeholder="http://localhost:8080"
-                value={baseUrl}
-                onChange={(event) => setBaseUrl(event.target.value)}
-              />
-            </div>
-            <div className="sm:col-span-5">
-              <Label htmlFor="adminApiKey">X-API-Key (admin.manage)</Label>
-              <Input
-                id="adminApiKey"
-                placeholder="prefix.secret"
-                value={adminApiKey}
-                onChange={(event) => setAdminApiKey(event.target.value)}
-              />
-            </div>
-            <div className="flex items-end gap-2 sm:col-span-1">
-              <Switch checked={rememberKey} onCheckedChange={setRememberKey} />
-              <span className="text-xs text-muted-foreground">Recordar</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {!canConnect ? (
-          <Alert variant="destructive">
-            <AlertTitle>Faltan datos para conectar</AlertTitle>
-            <AlertDescription>
-              Completa URL base y API key para cargar clientes y credenciales.
-            </AlertDescription>
-          </Alert>
-        ) : null}
 
         <section className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
           <Card className="border border-slate-200/70">
@@ -1019,18 +943,24 @@ export function AdminDashboard() {
                   </div>
                   <Separator />
                   <div className="flex flex-wrap items-center gap-2">
-                    <Input
-                      className="w-56"
-                      placeholder="scope a asignar"
-                      value={assignScopeValue}
-                      onChange={(event) => setAssignScopeValue(event.target.value)}
-                    />
+                    <Select value={effectiveAssignScopeValue} onValueChange={setAssignScopeValue}>
+                      <SelectTrigger className="w-72">
+                        <SelectValue placeholder="Selecciona un scope" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {unassignedScopes.map((scope) => (
+                          <SelectItem key={scope.scope} value={scope.scope}>
+                            {scope.scope}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Button
                       size="sm"
                       variant="outline"
                       type="button"
                       onClick={submitScopeAssign}
-                      disabled={assignScopeMutation.isPending}
+                      disabled={assignScopeMutation.isPending || !unassignedScopes.length}
                     >
                       {assignScopeMutation.isPending ? (
                         <Loader2 className="size-4 animate-spin" />
@@ -1039,6 +969,9 @@ export function AdminDashboard() {
                       )}
                       Asignar scope
                     </Button>
+                    {!unassignedScopes.length ? (
+                      <p className="text-xs text-muted-foreground">No hay scopes disponibles para asignar.</p>
+                    ) : null}
                     <Button
                       size="sm"
                       variant="outline"
@@ -1254,7 +1187,7 @@ export function AdminDashboard() {
           <DialogHeader>
             <DialogTitle>Nueva API key</DialogTitle>
             <DialogDescription>
-              Se genera para {effectiveSelectedClientCode || "-"}. Define scopes separados por coma.
+              Se genera para {effectiveSelectedClientCode || "-"}. Selecciona un scope definido en backend.
             </DialogDescription>
           </DialogHeader>
           <form className="space-y-3" onSubmit={submitCreateKey}>
@@ -1263,8 +1196,28 @@ export function AdminDashboard() {
               <Input id="expiresAt" type="datetime-local" {...createApiKeyForm.register("expiresAt")} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="scopes">Scopes</Label>
-              <Input id="scopes" placeholder="debtors.read,admin.manage" {...createApiKeyForm.register("scopes")} />
+              <Label htmlFor="scope">Scope</Label>
+              <Controller
+                control={createApiKeyForm.control}
+                name="scope"
+                render={({ field }) => (
+                  <Select value={field.value || ""} onValueChange={field.onChange}>
+                    <SelectTrigger id="scope" className="w-full">
+                      <SelectValue placeholder="Selecciona un scope" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableScopes.map((scope) => (
+                        <SelectItem key={scope.scope} value={scope.scope}>
+                          {scope.scope}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {scopesQuery.isError ? (
+                <p className="text-xs text-destructive">No se pudieron cargar los scopes desde backend.</p>
+              ) : null}
             </div>
             <DialogFooter>
               <Button type="submit" disabled={createApiKeyMutation.isPending || !effectiveSelectedClientCode}>
