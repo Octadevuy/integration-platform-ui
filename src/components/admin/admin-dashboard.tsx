@@ -10,6 +10,7 @@ import {
   Link2,
   Link2Off,
   Loader2,
+  LogOut,
   Plus,
   Power,
   RefreshCw,
@@ -18,6 +19,7 @@ import {
   Shield,
   Users,
 } from "lucide-react"
+import { signOut } from "next-auth/react"
 import { useEffect, useMemo, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -796,19 +798,30 @@ export function AdminDashboard() {
                 <span className="font-semibold"> /api/v1/admin/integrations</span>.
               </p>
             </div>
-            <Button
-              className="bg-white text-slate-900 hover:bg-slate-100"
-              onClick={() => refreshData()}
-              type="button"
-              disabled={!canConnect || clientsQuery.isFetching || apiKeysQuery.isFetching}
-            >
-              {clientsQuery.isFetching || apiKeysQuery.isFetching ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <RefreshCw className="size-4" />
-              )}
-              Actualizar
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                className="bg-white text-slate-900 hover:bg-slate-100"
+                onClick={() => refreshData()}
+                type="button"
+                disabled={!canConnect || clientsQuery.isFetching || apiKeysQuery.isFetching}
+              >
+                {clientsQuery.isFetching || apiKeysQuery.isFetching ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-4" />
+                )}
+                Actualizar
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-white hover:bg-white/15 hover:text-white"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                type="button"
+              >
+                <LogOut className="size-4" />
+                Salir
+              </Button>
+            </div>
           </div>
         </section>
 
