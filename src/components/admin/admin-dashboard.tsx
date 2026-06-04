@@ -887,10 +887,21 @@ export function AdminDashboard() {
             </CardHeader>
             <CardContent>
               {clientsQuery.isPending ? (
-                <div className="space-y-2 py-2">
-                  <Skeleton className="h-8 w-full" />
-                  <Skeleton className="h-8 w-full" />
-                  <Skeleton className="h-8 w-full" />
+                <div className="py-2">
+                  <div className="mb-2 flex gap-3 border-b pb-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex gap-3 border-b py-2.5">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-36" />
+                      <Skeleton className="h-5 w-14 rounded-full" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <DataTable
@@ -952,10 +963,21 @@ export function AdminDashboard() {
             </CardHeader>
             <CardContent>
               {apiKeysQuery.isPending && effectiveSelectedClientCode ? (
-                <div className="space-y-2 py-2">
-                  <Skeleton className="h-8 w-full" />
-                  <Skeleton className="h-8 w-full" />
-                  <Skeleton className="h-8 w-full" />
+                <div className="py-2">
+                  <div className="mb-2 flex gap-3 border-b pb-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex gap-3 border-b py-2.5">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <DataTable
@@ -1072,20 +1094,48 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent className="grid gap-5 pt-4 lg:grid-cols-2">
             <div className="space-y-3">
-              <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted-foreground">Cliente</p>
-                <p className="font-medium">{selectedClient?.displayName || "-"}</p>
-                <p className="text-xs text-muted-foreground">{selectedClient?.clientCode || "-"}</p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Estado: {selectedClient?.active ? "Activo" : "Inactivo"}
-                </p>
-              </div>
-              <DataTable
-                columns={historyColumns}
-                data={keyHistory}
-                emptyMessage="Sin eventos de historial para este cliente"
-                getRowId={(row) => row.id}
-              />
+              {clientsQuery.isPending ? (
+                <div className="rounded-lg border border-border p-3 space-y-2">
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-16 mt-2" />
+                </div>
+              ) : (
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-xs text-muted-foreground">Cliente</p>
+                  <p className="font-medium">{selectedClient?.displayName || "-"}</p>
+                  <p className="text-xs text-muted-foreground">{selectedClient?.clientCode || "-"}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Estado: {selectedClient?.active ? "Activo" : "Inactivo"}
+                  </p>
+                </div>
+              )}
+              {apiKeysQuery.isPending && effectiveSelectedClientCode ? (
+                <div>
+                  <div className="mb-2 flex gap-3 border-b pb-2">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex gap-3 border-b py-2.5">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-5 w-14 rounded-full" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <DataTable
+                  columns={historyColumns}
+                  data={keyHistory}
+                  emptyMessage="Sin eventos de historial para este cliente"
+                  getRowId={(row) => row.id}
+                />
+              )}
             </div>
             <div>
               <Alert>
@@ -1095,12 +1145,33 @@ export function AdminDashboard() {
                 </AlertDescription>
               </Alert>
               <div className="mt-3">
-                <DataTable
-                  columns={auditColumns}
-                  data={scopedAuditActions}
-                  emptyMessage="Aun no hay acciones auditables registradas"
-                  getRowId={(row) => String(row.id)}
-                />
+                {auditEventsQuery.isPending ? (
+                  <div>
+                    <div className="mb-2 flex gap-3 border-b pb-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="flex gap-3 border-b py-2.5">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-5 w-24 rounded-full" />
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-4 w-20" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <DataTable
+                    columns={auditColumns}
+                    data={scopedAuditActions}
+                    emptyMessage="Aun no hay acciones auditables registradas"
+                    getRowId={(row) => String(row.id)}
+                  />
+                )}
               </div>
             </div>
           </CardContent>
