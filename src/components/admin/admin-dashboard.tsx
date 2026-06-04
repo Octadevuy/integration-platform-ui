@@ -970,7 +970,10 @@ export function AdminDashboard() {
                   </div>
                   <Separator />
                   <div className="flex flex-wrap items-center gap-2">
-                    <Select value={effectiveAssignScopeValue} onValueChange={setAssignScopeValue}>
+                    <Select
+                      value={effectiveAssignScopeValue}
+                      onValueChange={(value) => setAssignScopeValue(value ?? "")}
+                    >
                       <SelectTrigger className="w-72">
                         <SelectValue placeholder="Selecciona un scope" />
                       </SelectTrigger>
@@ -1236,7 +1239,10 @@ export function AdminDashboard() {
             <div className="space-y-1.5">
               <Label htmlFor="scope">Scopes</Label>
               <div className="flex flex-wrap items-center gap-2">
-                <Select value={effectiveCreateKeyScopeValue} onValueChange={setCreateKeyScopeValue}>
+                <Select
+                  value={effectiveCreateKeyScopeValue}
+                  onValueChange={(value) => setCreateKeyScopeValue(value ?? "")}
+                >
                   <SelectTrigger id="scope" className="w-full sm:w-72">
                     <SelectValue placeholder="Selecciona un scope" />
                   </SelectTrigger>
