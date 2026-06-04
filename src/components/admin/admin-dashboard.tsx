@@ -17,6 +17,7 @@ import {
   RotateCw,
   Shield,
   Users,
+  X,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { useEffect, useMemo, useState } from "react"
@@ -97,7 +98,6 @@ const updateClientSchema = z.object({
 
 const createApiKeySchema = z.object({
   expiresAt: z.string().trim().optional(),
-  scope: z.string().trim().optional(),
 })
 
 type CreateClientForm = z.infer<typeof createClientSchema>
@@ -215,6 +215,8 @@ export function AdminDashboard() {
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false)
   const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false)
   const [assignScopeValue, setAssignScopeValue] = useState("")
+  const [createKeyScopes, setCreateKeyScopes] = useState<string[]>([])
+  const [createKeyScopeValue, setCreateKeyScopeValue] = useState("")
 
   const registerAuditAction = (_entry: Omit<AuditAction, "id" | "at">) => {
     void _entry
@@ -311,6 +313,22 @@ export function AdminDashboard() {
     return unassignedScopes[0]?.scope ?? ""
   }, [assignScopeValue, unassignedScopes])
 
+  const availableCreateKeyScopes = useMemo(
+    () => availableScopes.filter((scope) => !createKeyScopes.includes(scope.scope)),
+    [availableScopes, createKeyScopes],
+  )
+
+  const effectiveCreateKeyScopeValue = useMemo(() => {
+    if (
+      createKeyScopeValue
+      && availableCreateKeyScopes.some((scope) => scope.scope === createKeyScopeValue)
+    ) {
+      return createKeyScopeValue
+    }
+
+    return availableCreateKeyScopes[0]?.scope ?? ""
+  }, [availableCreateKeyScopes, createKeyScopeValue])
+
   const invalidateAuditEvents = () =>
     queryClient.invalidateQueries({
       queryKey: ["audit-events", settings.baseUrl, settings.adminApiKey],
@@ -394,6 +412,8 @@ export function AdminDashboard() {
       createApiKey(settings, clientCode, payload),
     onSuccess: async (result) => {
       setCreateKeyOpen(false)
+      setCreateKeyScopes([])
+      setCreateKeyScopeValue("")
       setSelectedKeyPrefix(result.keyPrefix)
       registerAuditAction({
         action: "CREATE_API_KEY",
@@ -685,21 +705,8 @@ export function AdminDashboard() {
     resolver: zodResolver(createApiKeySchema),
     defaultValues: {
       expiresAt: "",
-      scope: "",
     },
   })
-
-  useEffect(() => {
-    if (!createKeyOpen) {
-      return
-    }
-
-    const firstScope = availableScopes[0]?.scope
-
-    if (firstScope) {
-      createApiKeyForm.setValue("scope", firstScope)
-    }
-  }, [availableScopes, createApiKeyForm, createKeyOpen])
 
   const submitCreateClient = createClientForm.handleSubmit((values) => {
     createClientMutation.mutate(values)
@@ -725,10 +732,25 @@ export function AdminDashboard() {
       clientCode: effectiveSelectedClientCode,
       payload: {
         expiresAt: toIsoDateTime(values.expiresAt),
-        scopes: values.scope ? [values.scope] : [],
+        scopes: createKeyScopes,
       },
     })
   })
+
+  const addCreateKeyScope = () => {
+    const scope = effectiveCreateKeyScopeValue.trim()
+
+    if (!scope) {
+      toast.error("Selecciona un scope para agregar")
+      return
+    }
+
+    setCreateKeyScopes((current) => (current.includes(scope) ? current : [...current, scope]))
+  }
+
+  const removeCreateKeyScope = (scopeToRemove: string) => {
+    setCreateKeyScopes((current) => current.filter((scope) => scope !== scopeToRemove))
+  }
 
   const submitScopeAssign = () => {
     if (!effectiveSelectedClientCode || !effectiveSelectedKeyPrefix) {
@@ -878,7 +900,12 @@ export function AdminDashboard() {
                   size="sm"
                   type="button"
                   disabled={!effectiveSelectedClientCode}
-                  onClick={() => setCreateKeyOpen(true)}
+                  onClick={() => {
+                    createApiKeyForm.reset({ expiresAt: "" })
+                    setCreateKeyScopes([])
+                    setCreateKeyScopeValue("")
+                    setCreateKeyOpen(true)
+                  }}
                 >
                   <Plus className="size-4" />
                   Nueva key
@@ -1182,12 +1209,23 @@ export function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={createKeyOpen} onOpenChange={setCreateKeyOpen}>
+      <Dialog
+        open={createKeyOpen}
+        onOpenChange={(open) => {
+          setCreateKeyOpen(open)
+
+          if (!open) {
+            createApiKeyForm.reset({ expiresAt: "" })
+            setCreateKeyScopes([])
+            setCreateKeyScopeValue("")
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Nueva API key</DialogTitle>
             <DialogDescription>
-              Se genera para {effectiveSelectedClientCode || "-"}. Selecciona un scope definido en backend.
+              Se genera para {effectiveSelectedClientCode || "-"}. Selecciona multiples scopes definidos en backend.
             </DialogDescription>
           </DialogHeader>
           <form className="space-y-3" onSubmit={submitCreateKey}>
@@ -1196,25 +1234,47 @@ export function AdminDashboard() {
               <Input id="expiresAt" type="datetime-local" {...createApiKeyForm.register("expiresAt")} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="scope">Scope</Label>
-              <Controller
-                control={createApiKeyForm.control}
-                name="scope"
-                render={({ field }) => (
-                  <Select value={field.value || ""} onValueChange={field.onChange}>
-                    <SelectTrigger id="scope" className="w-full">
-                      <SelectValue placeholder="Selecciona un scope" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableScopes.map((scope) => (
-                        <SelectItem key={scope.scope} value={scope.scope}>
-                          {scope.scope}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+              <Label htmlFor="scope">Scopes</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={effectiveCreateKeyScopeValue} onValueChange={setCreateKeyScopeValue}>
+                  <SelectTrigger id="scope" className="w-full sm:w-72">
+                    <SelectValue placeholder="Selecciona un scope" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCreateKeyScopes.map((scope) => (
+                      <SelectItem key={scope.scope} value={scope.scope}>
+                        {scope.scope}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addCreateKeyScope}
+                  disabled={!availableCreateKeyScopes.length}
+                >
+                  Agregar
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {createKeyScopes.map((scope) => (
+                  <Badge key={scope} variant="secondary" className="inline-flex items-center gap-1.5 px-2 py-1">
+                    {scope}
+                    <button
+                      className="rounded-sm hover:text-destructive"
+                      type="button"
+                      onClick={() => removeCreateKeyScope(scope)}
+                      title={`Quitar ${scope}`}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </Badge>
+                ))}
+                {!createKeyScopes.length ? (
+                  <p className="text-xs text-muted-foreground">No hay scopes seleccionados.</p>
+                ) : null}
+              </div>
               {scopesQuery.isError ? (
                 <p className="text-xs text-destructive">No se pudieron cargar los scopes desde backend.</p>
               ) : null}
