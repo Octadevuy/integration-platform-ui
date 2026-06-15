@@ -6,8 +6,13 @@ const FORWARDED_RESPONSE_HEADERS = ["content-type", "cache-control", "etag"]
 export const dynamic = "force-dynamic"
 
 function resolveBaseUrl() {
-  const candidate =
+  const rawCandidate =
     process.env.BCU_API_BASE_URL || process.env.NEXT_PUBLIC_DEFAULT_BCU_API_URL || ""
+
+  const candidate = rawCandidate
+    .trim()
+    .replace(/^['\"]+/, "")
+    .replace(/['\"]+$/, "")
 
   if (!candidate) {
     throw new Error("Missing target base URL")

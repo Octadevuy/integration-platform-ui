@@ -16,6 +16,7 @@ const MOCK_USERS = [
 ]
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+    trustHost: true,
     providers: [
         Credentials({
             credentials: {

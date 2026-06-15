@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  bcu-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bcu-ui
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXTAUTH_URL=http://localhost:3000
+      - AUTH_TRUST_HOST=true
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-your-secret-key-here}
+    restart: unless-stopped
+    networks:
+      - bcu-network
+
+networks:
+  bcu-network:
+    driver: bridge
