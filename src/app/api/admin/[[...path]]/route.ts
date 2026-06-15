@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
+import { auth } from "@/auth"
+
 const ADMIN_PREFIX = "/api/v1/admin/integrations"
 const FORWARDED_RESPONSE_HEADERS = ["content-type", "cache-control", "etag"]
 
@@ -28,6 +30,18 @@ function resolveBaseUrl() {
 }
 
 async function forward(request: NextRequest, path: string[]) {
+  const session = await auth()
+
+  if (!session) {
+    return NextResponse.json(
+      {
+        title: "Unauthorized",
+        detail: "A valid session is required.",
+      },
+      { status: 401 },
+    )
+  }
+
   const adminApiKey = process.env.BCU_ADMIN_API_KEY || ""
 
   if (!adminApiKey) {

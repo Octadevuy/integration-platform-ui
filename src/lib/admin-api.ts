@@ -56,6 +56,14 @@ async function request<T>(
     cache: "no-store",
   })
 
+  if (response.status === 401) {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("bcu:session-invalid"))
+    }
+
+    throw new ApiRequestError("Sesion no valida o expirada.", 401)
+  }
+
   if (!response.ok) {
     await parseError(response)
   }
