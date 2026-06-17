@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import { format, parseISO } from "date-fns"
 import {
+  Check,
+  Copy,
   Eye,
   KeyRound,
   Link2,
@@ -217,6 +219,8 @@ export function AdminDashboard() {
   const [assignScopeValue, setAssignScopeValue] = useState("")
   const [createKeyScopes, setCreateKeyScopes] = useState<string[]>([])
   const [createKeyScopeValue, setCreateKeyScopeValue] = useState("")
+  const [revealedApiKey, setRevealedApiKey] = useState<string | null>(null)
+  const [copiedApiKey, setCopiedApiKey] = useState(false)
 
   const registerAuditAction = (_entry: Omit<AuditAction, "id" | "at">) => {
     void _entry
@@ -420,11 +424,11 @@ export function AdminDashboard() {
         target: `${result.clientCode}/${result.keyPrefix}`,
         detail: "Nueva API key emitida",
       })
-      toast.success("API key creada", {
-        description: result.apiKey
-          ? "Guardala ahora: el backend solo la devuelve una vez."
-          : "La clave se genero correctamente.",
-      })
+      if (result.apiKey) {
+        setRevealedApiKey(result.apiKey)
+      } else {
+        toast.success("API key creada")
+      }
       await refreshData()
     },
     onError: (error) => {
@@ -471,7 +475,11 @@ export function AdminDashboard() {
         target: `${result.clientCode}/${result.keyPrefix}`,
         detail: "API key rotada",
       })
-      toast.success("API key rotada")
+      if (result.apiKey) {
+        setRevealedApiKey(result.apiKey)
+      } else {
+        toast.success("API key rotada")
+      }
       await refreshData()
     },
     onError: (error) => {
@@ -1292,6 +1300,63 @@ export function AdminDashboard() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!revealedApiKey}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRevealedApiKey(null)
+            setCopiedApiKey(false)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>API key creada</DialogTitle>
+            <DialogDescription>
+              Copia y guarda la clave ahora. El backend no la volvera a mostrar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={revealedApiKey ?? ""}
+                className="font-mono text-sm"
+                onFocus={(e) => e.target.select()}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  if (!revealedApiKey) return
+                  void navigator.clipboard.writeText(revealedApiKey).then(() => {
+                    setCopiedApiKey(true)
+                    setTimeout(() => setCopiedApiKey(false), 2000)
+                  })
+                }}
+                title="Copiar al portapapeles"
+              >
+                {copiedApiKey ? <Check className="size-4 text-green-600" /> : <Copy className="size-4" />}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Una vez que cierres este dialogo, no podras recuperar el valor completo.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setRevealedApiKey(null)
+                setCopiedApiKey(false)
+              }}
+            >
+              Ya la guarde
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
