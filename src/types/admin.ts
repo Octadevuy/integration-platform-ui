@@ -40,7 +40,6 @@ export interface CreateApiKeyRequest {
 
 export interface ConnectionSettings {
   baseUrl: string
-  adminApiKey: string
   rememberKey: boolean
 }
 
@@ -89,4 +88,32 @@ export interface AuditEventQuery {
   to?: string | null
   page?: number
   size?: number
+}
+
+export type UserRole = "ADMIN" | "SUPER_ADMIN"
+
+export interface UserResponse {
+  id: number
+  username: string
+  email: string | null
+  name: string | null
+  role: UserRole
+  active: boolean
+  createdAt: string
+  lastLoginAt: string | null
+}
+
+export interface CreateUserRequest {
+  username: string
+  password: string
+  role: UserRole
+  email?: string | null
+  name?: string | null
+}
+
+export interface UpdateUserRequest {
+  role: UserRole
+  active: boolean
+  email?: string | null
+  name?: string | null
 }

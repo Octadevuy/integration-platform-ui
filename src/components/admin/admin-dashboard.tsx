@@ -18,6 +18,7 @@ import {
   RefreshCw,
   RotateCw,
   Shield,
+  UserCog,
   Users,
   X,
 } from "lucide-react"
@@ -81,6 +82,8 @@ import type {
   IntegrationClientResponse,
   PermissionScopeResponse,
 } from "@/types/admin"
+import { cn } from "@/lib/utils"
+import { UsersPanel } from "@/components/admin/users-panel"
 
 const createClientSchema = z.object({
   clientCode: z
@@ -202,11 +205,12 @@ export function AdminDashboard() {
   const settings = useMemo(
     () => ({
       baseUrl: "server-managed",
-      adminApiKey: "server-managed",
       rememberKey: false,
     }),
     [],
   )
+
+  const [activeSection, setActiveSection] = useState<"integrations" | "users">("integrations")
 
   const [selectedClientCode, setSelectedClientCode] = useState<string | null>(null)
   const [selectedKeyPrefix, setSelectedKeyPrefix] = useState<string | null>(null)
@@ -227,7 +231,7 @@ export function AdminDashboard() {
   }
 
   const clientsQuery = useQuery({
-    queryKey: ["clients", settings.baseUrl, settings.adminApiKey],
+    queryKey: ["clients", settings.baseUrl, ],
     queryFn: () => listClients(settings),
   })
 
@@ -251,7 +255,7 @@ export function AdminDashboard() {
   )
 
   const apiKeysQuery = useQuery({
-    queryKey: ["api-keys", settings.baseUrl, settings.adminApiKey, effectiveSelectedClientCode],
+    queryKey: ["api-keys", settings.baseUrl,  effectiveSelectedClientCode],
     queryFn: () => listApiKeys(settings, effectiveSelectedClientCode as string),
     enabled: Boolean(effectiveSelectedClientCode),
   })
@@ -281,7 +285,6 @@ export function AdminDashboard() {
     queryKey: [
       "audit-events",
       settings.baseUrl,
-      settings.adminApiKey,
       effectiveSelectedClientCode,
     ],
     queryFn: () =>
@@ -297,7 +300,7 @@ export function AdminDashboard() {
   )
 
   const scopesQuery = useQuery({
-    queryKey: ["available-scopes", settings.baseUrl, settings.adminApiKey],
+    queryKey: ["available-scopes", settings.baseUrl, ],
     queryFn: () => listScopes(settings),
   })
 
@@ -335,15 +338,15 @@ export function AdminDashboard() {
 
   const invalidateAuditEvents = () =>
     queryClient.invalidateQueries({
-      queryKey: ["audit-events", settings.baseUrl, settings.adminApiKey],
+      queryKey: ["audit-events", settings.baseUrl, ],
     })
 
   const refreshData = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["clients", settings.baseUrl, settings.adminApiKey] })
+    await queryClient.invalidateQueries({ queryKey: ["clients", settings.baseUrl, ] })
 
     if (effectiveSelectedClientCode) {
       await queryClient.invalidateQueries({
-        queryKey: ["api-keys", settings.baseUrl, settings.adminApiKey, effectiveSelectedClientCode],
+        queryKey: ["api-keys", settings.baseUrl,  effectiveSelectedClientCode],
       })
     }
 
@@ -824,6 +827,41 @@ export function AdminDashboard() {
           </div>
         </section>
 
+        <div className="flex gap-5 items-start">
+          <aside className="w-52 shrink-0">
+            <nav className="flex flex-col gap-1 rounded-xl border border-slate-200/70 bg-white p-2 shadow-sm">
+              <button
+                type="button"
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
+                  activeSection === "integrations"
+                    ? "bg-sky-50 text-sky-700"
+                    : "text-muted-foreground hover:bg-slate-50 hover:text-foreground",
+                )}
+                onClick={() => setActiveSection("integrations")}
+              >
+                <Link2 className="size-4 shrink-0" />
+                Integraciones
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
+                  activeSection === "users"
+                    ? "bg-sky-50 text-sky-700"
+                    : "text-muted-foreground hover:bg-slate-50 hover:text-foreground",
+                )}
+                onClick={() => setActiveSection("users")}
+              >
+                <UserCog className="size-4 shrink-0" />
+                Usuarios Admin
+              </button>
+            </nav>
+          </aside>
+
+          <div className="flex-1 flex flex-col gap-5 min-w-0">
+          {activeSection === "integrations" && <>
+
         <section className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
           <Card className="border border-slate-200/70">
             <CardHeader className="border-b border-slate-200/80">
@@ -1147,6 +1185,10 @@ export function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+          </>}
+          {activeSection === "users" && <UsersPanel />}
+          </div>
+        </div>
       </div>
 
       <Dialog open={createClientOpen} onOpenChange={setCreateClientOpen}>

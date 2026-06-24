@@ -1,20 +1,6 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 
-/**
- * Mock users — replace with a real backend call when authentication
- * is implemented server-side.
- */
-const MOCK_USERS = [
-    {
-        id: "1",
-        name: "Admin BCU",
-        email: "admin@bcu.uy",
-        username: "admin",
-        password: "admin123",
-    },
-]
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
     trustHost: true,
     providers: [
@@ -27,22 +13,57 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const username = credentials?.username as string | undefined
                 const password = credentials?.password as string | undefined
 
-                if (!username || !password) {
+                if (!username || !password) return null
+
+                const baseUrl = process.env.BCU_API_BASE_URL ?? ""
+                if (!baseUrl) return null
+
+                try {
+                    const res = await fetch(`${baseUrl}/api/v1/admin/auth/login`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username, password }),
+                        cache: "no-store",
+                    })
+
+                    if (!res.ok) return null
+
+                    const data = await res.json() as {
+                        token: string
+                        username: string
+                        role: string
+                        expiresAt: string
+                    }
+
+                    return {
+                        id: data.username,
+                        name: data.username,
+                        backendToken: data.token,
+                        role: data.role,
+                    }
+                } catch {
                     return null
                 }
-
-                const user = MOCK_USERS.find(
-                    (u) => u.username === username && u.password === password,
-                )
-
-                if (!user) {
-                    return null
-                }
-
-                return { id: user.id, name: user.name, email: user.email }
             },
         }),
     ],
+    callbacks: {
+        jwt({ token, user }) {
+            if (user) {
+                const u = user as { backendToken?: string; role?: string }
+                token.backendToken = u.backendToken
+                token.role = u.role
+            }
+            return token
+        },
+        session({ session, token }) {
+            return {
+                ...session,
+                backendToken: token.backendToken as string | undefined,
+                role: token.role as string | undefined,
+            }
+        },
+    },
     pages: {
         signIn: "/login",
     },

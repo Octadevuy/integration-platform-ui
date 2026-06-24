@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 import { auth } from "@/auth"
 
-const ADMIN_PREFIX = "/api/v1/admin/integrations"
+const USERS_PREFIX = "/api/v1/admin/users"
 const FORWARDED_RESPONSE_HEADERS = ["content-type", "cache-control", "etag"]
 
 export const dynamic = "force-dynamic"
@@ -71,7 +71,7 @@ async function forward(request: NextRequest, path: string[]) {
   }
 
   const suffix = path.length ? `/${path.join("/")}` : ""
-  const targetUrl = new URL(`${targetBaseUrl}${ADMIN_PREFIX}${suffix}`)
+  const targetUrl = new URL(`${targetBaseUrl}${USERS_PREFIX}${suffix}`)
   targetUrl.search = request.nextUrl.search
 
   const headers = new Headers()
