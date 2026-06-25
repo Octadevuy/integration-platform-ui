@@ -202,13 +202,6 @@ function buildKeyHistory(apiKeys: ApiKeyResponse[]): KeyHistoryEvent[] {
 
 export function AdminDashboard() {
   const queryClient = useQueryClient()
-  const settings = useMemo(
-    () => ({
-      baseUrl: "server-managed",
-      rememberKey: false,
-    }),
-    [],
-  )
 
   const [activeSection, setActiveSection] = useState<"integrations" | "users">("integrations")
 
@@ -231,8 +224,8 @@ export function AdminDashboard() {
   }
 
   const clientsQuery = useQuery({
-    queryKey: ["clients", settings.baseUrl, ],
-    queryFn: () => listClients(settings),
+    queryKey: ["clients"],
+    queryFn: () => listClients(),
   })
 
   const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data])
@@ -255,8 +248,8 @@ export function AdminDashboard() {
   )
 
   const apiKeysQuery = useQuery({
-    queryKey: ["api-keys", settings.baseUrl,  effectiveSelectedClientCode],
-    queryFn: () => listApiKeys(settings, effectiveSelectedClientCode as string),
+    queryKey: ["api-keys", effectiveSelectedClientCode],
+    queryFn: () => listApiKeys(effectiveSelectedClientCode as string),
     enabled: Boolean(effectiveSelectedClientCode),
   })
 
@@ -282,13 +275,9 @@ export function AdminDashboard() {
   const keyHistory = useMemo(() => buildKeyHistory(apiKeys), [apiKeys])
 
   const auditEventsQuery = useQuery({
-    queryKey: [
-      "audit-events",
-      settings.baseUrl,
-      effectiveSelectedClientCode,
-    ],
+    queryKey: ["audit-events", effectiveSelectedClientCode],
     queryFn: () =>
-      listAuditEvents(settings, {
+      listAuditEvents({
         clientCode: effectiveSelectedClientCode ?? undefined,
         size: 100,
       }),
@@ -300,8 +289,8 @@ export function AdminDashboard() {
   )
 
   const scopesQuery = useQuery({
-    queryKey: ["available-scopes", settings.baseUrl, ],
-    queryFn: () => listScopes(settings),
+    queryKey: ["available-scopes"],
+    queryFn: () => listScopes(),
   })
 
   const availableScopes = useMemo<PermissionScopeResponse[]>(() => scopesQuery.data ?? [], [scopesQuery.data])
@@ -337,16 +326,14 @@ export function AdminDashboard() {
   }, [availableCreateKeyScopes, createKeyScopeValue])
 
   const invalidateAuditEvents = () =>
-    queryClient.invalidateQueries({
-      queryKey: ["audit-events", settings.baseUrl, ],
-    })
+    queryClient.invalidateQueries({ queryKey: ["audit-events"] })
 
   const refreshData = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["clients", settings.baseUrl, ] })
+    await queryClient.invalidateQueries({ queryKey: ["clients"] })
 
     if (effectiveSelectedClientCode) {
       await queryClient.invalidateQueries({
-        queryKey: ["api-keys", settings.baseUrl,  effectiveSelectedClientCode],
+        queryKey: ["api-keys", effectiveSelectedClientCode],
       })
     }
 
@@ -354,7 +341,7 @@ export function AdminDashboard() {
   }
 
   const createClientMutation = useMutation({
-    mutationFn: (payload: CreateClientForm) => createClient(settings, payload),
+    mutationFn: (payload: CreateClientForm) => createClient(payload),
     onSuccess: async (client) => {
       setSelectedClientCode(client.clientCode)
       setCreateClientOpen(false)
@@ -377,7 +364,7 @@ export function AdminDashboard() {
 
   const updateClientMutation = useMutation({
     mutationFn: ({ clientCode, payload }: { clientCode: string; payload: UpdateClientForm }) =>
-      updateClient(settings, clientCode, payload),
+      updateClient(clientCode, payload),
     onSuccess: async () => {
       setEditClientOpen(false)
       registerAuditAction({
@@ -396,7 +383,7 @@ export function AdminDashboard() {
   })
 
   const deactivateClientMutation = useMutation({
-    mutationFn: (clientCode: string) => deactivateClient(settings, clientCode),
+    mutationFn: (clientCode: string) => deactivateClient(clientCode),
     onSuccess: async () => {
       setConfirmDeactivateOpen(false)
       registerAuditAction({
@@ -416,7 +403,7 @@ export function AdminDashboard() {
 
   const createApiKeyMutation = useMutation({
     mutationFn: ({ clientCode, payload }: { clientCode: string; payload: CreateApiKeyRequest }) =>
-      createApiKey(settings, clientCode, payload),
+      createApiKey(clientCode, payload),
     onSuccess: async (result) => {
       setCreateKeyOpen(false)
       setCreateKeyScopes([])
@@ -443,7 +430,7 @@ export function AdminDashboard() {
 
   const revokeApiKeyMutation = useMutation({
     mutationFn: ({ clientCode, keyPrefix }: { clientCode: string; keyPrefix: string }) =>
-      revokeApiKey(settings, clientCode, keyPrefix),
+      revokeApiKey(clientCode, keyPrefix),
     onSuccess: async () => {
       setConfirmRevokeOpen(false)
       registerAuditAction({
@@ -470,7 +457,7 @@ export function AdminDashboard() {
       clientCode: string
       keyPrefix: string
       payload: CreateApiKeyRequest
-    }) => rotateApiKey(settings, clientCode, keyPrefix, payload),
+    }) => rotateApiKey(clientCode, keyPrefix, payload),
     onSuccess: async (result) => {
       setSelectedKeyPrefix(result.keyPrefix)
       registerAuditAction({
@@ -501,7 +488,7 @@ export function AdminDashboard() {
       clientCode: string
       keyPrefix: string
       scope: string
-    }) => assignScope(settings, clientCode, keyPrefix, scope),
+    }) => assignScope(clientCode, keyPrefix, scope),
     onSuccess: async (_, variables) => {
       setAssignScopeValue("")
       registerAuditAction({
@@ -528,7 +515,7 @@ export function AdminDashboard() {
       clientCode: string
       keyPrefix: string
       scope: string
-    }) => removeScope(settings, clientCode, keyPrefix, scope),
+    }) => removeScope(clientCode, keyPrefix, scope),
     onSuccess: async (_, variables) => {
       registerAuditAction({
         action: "REMOVE_SCOPE",

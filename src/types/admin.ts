@@ -38,11 +38,6 @@ export interface CreateApiKeyRequest {
   scopes: string[]
 }
 
-export interface ConnectionSettings {
-  baseUrl: string
-  rememberKey: boolean
-}
-
 export interface ProblemDetail {
   title?: string
   detail?: string

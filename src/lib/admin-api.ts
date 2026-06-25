@@ -2,7 +2,6 @@ import type {
   ApiKeyResponse,
   AuditEventQuery,
   AuditEventResponse,
-  ConnectionSettings,
   CreateApiKeyRequest,
   CreateIntegrationClientRequest,
   IntegrationClientResponse,
@@ -37,12 +36,9 @@ async function parseError(response: Response) {
 }
 
 async function request<T>(
-  settings: ConnectionSettings,
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  void settings
-
   const headers = new Headers(init.headers)
   headers.set("accept", "application/json")
 
@@ -87,81 +83,58 @@ export function getErrorMessage(error: unknown) {
   return "Ocurrió un error inesperado."
 }
 
-export async function listClients(settings: ConnectionSettings) {
-  return request<IntegrationClientResponse[]>(settings, "")
+export async function listClients() {
+  return request<IntegrationClientResponse[]>("")
 }
 
-export async function createClient(
-  settings: ConnectionSettings,
-  payload: CreateIntegrationClientRequest,
-) {
-  return request<IntegrationClientResponse>(settings, "", {
+export async function createClient(payload: CreateIntegrationClientRequest) {
+  return request<IntegrationClientResponse>("", {
     method: "POST",
     body: JSON.stringify(payload),
   })
 }
 
-export async function updateClient(
-  settings: ConnectionSettings,
-  clientCode: string,
-  payload: UpdateIntegrationClientRequest,
-) {
-  return request<IntegrationClientResponse>(settings, encodeURIComponent(clientCode), {
+export async function updateClient(clientCode: string, payload: UpdateIntegrationClientRequest) {
+  return request<IntegrationClientResponse>(encodeURIComponent(clientCode), {
     method: "PUT",
     body: JSON.stringify(payload),
   })
 }
 
-export async function deactivateClient(settings: ConnectionSettings, clientCode: string) {
-  return request<IntegrationClientResponse>(settings, encodeURIComponent(clientCode), {
+export async function deactivateClient(clientCode: string) {
+  return request<IntegrationClientResponse>(encodeURIComponent(clientCode), {
     method: "DELETE",
   })
 }
 
-export async function listApiKeys(settings: ConnectionSettings, clientCode: string) {
-  return request<ApiKeyResponse[]>(
-    settings,
-    `${encodeURIComponent(clientCode)}/api-keys`,
-  )
+export async function listApiKeys(clientCode: string) {
+  return request<ApiKeyResponse[]>(`${encodeURIComponent(clientCode)}/api-keys`)
 }
 
-export async function listScopes(settings: ConnectionSettings) {
-  return request<PermissionScopeResponse[]>(settings, "scopes")
+export async function listScopes() {
+  return request<PermissionScopeResponse[]>("scopes")
 }
 
-export async function createApiKey(
-  settings: ConnectionSettings,
-  clientCode: string,
-  payload: CreateApiKeyRequest,
-) {
-  return request<ApiKeyResponse>(settings, `${encodeURIComponent(clientCode)}/api-keys`, {
+export async function createApiKey(clientCode: string, payload: CreateApiKeyRequest) {
+  return request<ApiKeyResponse>(`${encodeURIComponent(clientCode)}/api-keys`, {
     method: "POST",
     body: JSON.stringify(payload),
   })
 }
 
-export async function revokeApiKey(
-  settings: ConnectionSettings,
-  clientCode: string,
-  keyPrefix: string,
-) {
+export async function revokeApiKey(clientCode: string, keyPrefix: string) {
   return request<ApiKeyResponse>(
-    settings,
     `${encodeURIComponent(clientCode)}/api-keys/${encodeURIComponent(keyPrefix)}/revoke`,
-    {
-      method: "POST",
-    },
+    { method: "POST" },
   )
 }
 
 export async function rotateApiKey(
-  settings: ConnectionSettings,
   clientCode: string,
   keyPrefix: string,
   payload: CreateApiKeyRequest,
 ) {
   return request<ApiKeyResponse>(
-    settings,
     `${encodeURIComponent(clientCode)}/api-keys/${encodeURIComponent(keyPrefix)}/rotate`,
     {
       method: "POST",
@@ -170,40 +143,21 @@ export async function rotateApiKey(
   )
 }
 
-export async function assignScope(
-  settings: ConnectionSettings,
-  clientCode: string,
-  keyPrefix: string,
-  scope: string,
-) {
+export async function assignScope(clientCode: string, keyPrefix: string, scope: string) {
   return request<ApiKeyResponse>(
-    settings,
     `${encodeURIComponent(clientCode)}/api-keys/${encodeURIComponent(keyPrefix)}/scopes/${encodeURIComponent(scope)}`,
-    {
-      method: "POST",
-    },
+    { method: "POST" },
   )
 }
 
-export async function removeScope(
-  settings: ConnectionSettings,
-  clientCode: string,
-  keyPrefix: string,
-  scope: string,
-) {
+export async function removeScope(clientCode: string, keyPrefix: string, scope: string) {
   return request<ApiKeyResponse>(
-    settings,
     `${encodeURIComponent(clientCode)}/api-keys/${encodeURIComponent(keyPrefix)}/scopes/${encodeURIComponent(scope)}`,
-    {
-      method: "DELETE",
-    },
+    { method: "DELETE" },
   )
 }
 
-export async function listAuditEvents(
-  settings: ConnectionSettings,
-  query: AuditEventQuery = {},
-) {
+export async function listAuditEvents(query: AuditEventQuery = {}) {
   const params = new URLSearchParams()
   if (query.clientCode) params.set("clientCode", query.clientCode)
   if (query.action) params.set("action", query.action)
@@ -212,5 +166,5 @@ export async function listAuditEvents(
   if (typeof query.page === "number") params.set("page", String(query.page))
   if (typeof query.size === "number") params.set("size", String(query.size))
   const qs = params.toString()
-  return request<AuditEventResponse[]>(settings, `audit-events${qs ? `?${qs}` : ""}`)
+  return request<AuditEventResponse[]>(`audit-events${qs ? `?${qs}` : ""}`)
 }
