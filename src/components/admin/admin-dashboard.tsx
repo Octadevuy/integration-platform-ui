@@ -789,7 +789,7 @@ export function AdminDashboard() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,var(--color-accent)_0%,var(--color-background)_45%,var(--color-background)_100%)] px-4 py-6 text-foreground sm:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
-        <section className="rounded-2xl bg-gradient-to-r from-ring via-accent-foreground to-foreground p-6 text-white shadow-lg shadow-black/20">
+        <section className="rounded-2xl bg-gradient-to-r from-brand-hero-from via-brand-hero-via to-brand-hero-to p-6 text-white shadow-lg shadow-black/20">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium uppercase tracking-wide">
@@ -806,7 +806,7 @@ export function AdminDashboard() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button
-                className="bg-white text-slate-900 hover:bg-slate-100"
+                className="bg-background text-foreground hover:bg-muted"
                 onClick={() => refreshData()}
                 type="button"
                 disabled={clientsQuery.isFetching || apiKeysQuery.isFetching}
@@ -832,7 +832,7 @@ export function AdminDashboard() {
                   className={cn(
                     "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
                     activeSection === "integrations"
-                      ? "bg-accent text-accent-foreground"
+                      ? "bg-brand-icon-soft text-brand-icon"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                   onClick={() => setActiveSection("integrations")}
@@ -847,7 +847,7 @@ export function AdminDashboard() {
                   className={cn(
                     "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
                     activeSection === "users"
-                      ? "bg-accent text-accent-foreground"
+                      ? "bg-brand-icon-soft text-brand-icon"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                   onClick={() => setActiveSection("users")}
@@ -862,7 +862,7 @@ export function AdminDashboard() {
                   className={cn(
                     "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
                     activeSection === "debtors"
-                      ? "bg-accent text-accent-foreground"
+                      ? "bg-brand-icon-soft text-brand-icon"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                   onClick={() => setActiveSection("debtors")}
@@ -881,7 +881,7 @@ export function AdminDashboard() {
           <Card className="border border-border">
             <CardHeader className="border-b border-border">
               <CardTitle className="inline-flex items-center gap-2">
-                <Users className="size-4 text-accent-foreground" />
+                <Users className="size-4 text-brand-icon" />
                 Clientes de integracion
               </CardTitle>
               <CardDescription>Crea, actualiza y desactiva consumidores internos.</CardDescription>
@@ -948,7 +948,7 @@ export function AdminDashboard() {
           <Card className="border border-border">
             <CardHeader className="border-b border-border">
               <CardTitle className="inline-flex items-center gap-2">
-                <KeyRound className="size-4 text-accent-foreground" />
+                <KeyRound className="size-4 text-brand-icon" />
                 API keys
               </CardTitle>
               <CardDescription>
@@ -1107,7 +1107,7 @@ export function AdminDashboard() {
         <Card className="border border-border">
           <CardHeader className="border-b border-border">
             <CardTitle className="inline-flex items-center gap-2">
-              <Eye className="size-4 text-accent-foreground" />
+              <Eye className="size-4 text-brand-icon" />
               Detalle de cliente
             </CardTitle>
             <CardDescription>
@@ -1398,7 +1398,7 @@ export function AdminDashboard() {
                 }}
                 title="Copiar al portapapeles"
               >
-                {copiedApiKey ? <Check className="size-4 text-green-600" /> : <Copy className="size-4" />}
+                {copiedApiKey ? <Check className="size-4 text-success" /> : <Copy className="size-4" />}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">

@@ -245,7 +245,7 @@ function CacheSourceIndicator({ fromCache }: { fromCache: boolean }) {
           <span
             className={cn(
               "inline-flex size-5 items-center justify-center rounded-full",
-              fromCache ? "text-emerald-600" : "text-muted-foreground"
+              fromCache ? "text-success" : "text-muted-foreground"
             )}
           />
         }
@@ -411,7 +411,7 @@ export function DebtorsQueryPanel() {
       <Card className="border border-border">
         <CardHeader className="border-b border-border">
           <CardTitle className="inline-flex items-center gap-2">
-            <Search className="size-4 text-accent-foreground" />
+            <Search className="size-4 text-brand-icon" />
             Consulta de deudores
           </CardTitle>
           <CardDescription>
