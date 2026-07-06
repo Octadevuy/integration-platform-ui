@@ -85,7 +85,7 @@ export interface AuditEventQuery {
   size?: number
 }
 
-export type UserRole = "ADMIN" | "SUPER_ADMIN"
+export type UserRole = "ADMIN" | "SUPER_ADMIN" | "DEBTOR_VIEWER"
 
 export interface UserResponse {
   id: number
@@ -111,4 +111,83 @@ export interface UpdateUserRequest {
   active: boolean
   email?: string | null
   name?: string | null
+}
+
+export type DocumentType = "CI" | "IDE" | "RUT" | "PASSPORT" | "OTHER"
+
+export interface IdDocumentDto {
+  type: DocumentType
+  country: string
+  number: string
+}
+
+export interface ActivitySectorDto {
+  code: string
+  description: string
+}
+
+export interface AmountDto {
+  value: number
+  currency: string
+}
+
+// The BCU debtor report expresses each category line's amount in the three
+// currency views shown on the original BCU screen. Rendered defensively in
+// the UI (iterate whatever keys are present) rather than assuming this exact
+// shape never changes.
+export interface AmountByCurrencyDto {
+  localPesos: AmountDto
+  foreignPesos: AmountDto
+  foreignUsd: AmountDto
+}
+
+export type DebtCategory =
+  | "CURRENT"
+  | "CURRENT_NON_AUTO_LIQUIDATING"
+  | "CONTINGENT"
+  | "WRITTEN_OFF"
+  | "PROVISIONS"
+
+export interface DebtCategoryLineDto {
+  category: DebtCategory | string
+  amounts: AmountByCurrencyDto
+}
+
+export type CreditRating =
+  | "C1A"
+  | "C1C"
+  | "C2A"
+  | "C2B"
+  | "C3"
+  | "C4"
+  | "C5"
+  | "UNCLASSIFIED"
+  | "OTHER"
+
+export interface InstitutionDebtDto {
+  institutionName: string
+  institutionCode: string | null
+  rating: CreditRating | string
+  lines: DebtCategoryLineDto[]
+}
+
+export interface DebtorReportDto {
+  period: string
+  totals: DebtCategoryLineDto[]
+  institutions: InstitutionDebtDto[]
+  generatedAt: string
+}
+
+export interface DebtorReportResponseDto {
+  document: IdDocumentDto
+  fullName: string
+  activitySector: ActivitySectorDto
+  reports: DebtorReportDto[]
+}
+
+export interface DebtorReportQuery {
+  documentType: DocumentType
+  country?: string
+  periodFrom?: string
+  periodTo?: string
 }

@@ -65,13 +65,13 @@ const createUserSchema = z.object({
     .string()
     .min(8, "Minimo 8 caracteres")
     .max(100, "Maximo 100 caracteres"),
-  role: z.enum(["ADMIN", "SUPER_ADMIN"]),
+  role: z.enum(["ADMIN", "SUPER_ADMIN", "DEBTOR_VIEWER"]),
   email: optionalEmail,
   name: optionalName,
 })
 
 const updateUserSchema = z.object({
-  role: z.enum(["ADMIN", "SUPER_ADMIN"]),
+  role: z.enum(["ADMIN", "SUPER_ADMIN", "DEBTOR_VIEWER"]),
   active: z.boolean(),
   email: optionalEmail,
   name: optionalName,
@@ -380,6 +380,7 @@ export function UsersPanel() {
                     <SelectContent>
                       <SelectItem value="ADMIN">ADMIN</SelectItem>
                       <SelectItem value="SUPER_ADMIN">SUPER_ADMIN</SelectItem>
+                      <SelectItem value="DEBTOR_VIEWER">DEBTOR_VIEWER</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
@@ -449,6 +450,7 @@ export function UsersPanel() {
                     <SelectContent>
                       <SelectItem value="ADMIN">ADMIN</SelectItem>
                       <SelectItem value="SUPER_ADMIN">SUPER_ADMIN</SelectItem>
+                      <SelectItem value="DEBTOR_VIEWER">DEBTOR_VIEWER</SelectItem>
                     </SelectContent>
                   </Select>
                 )}

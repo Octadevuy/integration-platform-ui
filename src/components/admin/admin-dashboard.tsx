@@ -8,6 +8,7 @@ import {
   Check,
   Copy,
   Eye,
+  FileSearch,
   KeyRound,
   Link2,
   Link2Off,
@@ -22,7 +23,7 @@ import {
   Users,
   X,
 } from "lucide-react"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import { useEffect, useMemo, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -84,6 +85,7 @@ import type {
 } from "@/types/admin"
 import { cn } from "@/lib/utils"
 import { UsersPanel } from "@/components/admin/users-panel"
+import { DebtorsQueryPanel } from "@/components/admin/debtors-query-panel"
 
 const createClientSchema = z.object({
   clientCode: z
@@ -202,8 +204,13 @@ function buildKeyHistory(apiKeys: ApiKeyResponse[]): KeyHistoryEvent[] {
 
 export function AdminDashboard() {
   const queryClient = useQueryClient()
+  const { data: session } = useSession()
 
-  const [activeSection, setActiveSection] = useState<"integrations" | "users">("integrations")
+  const canViewDebtors = session?.role === "SUPER_ADMIN" || session?.role === "DEBTOR_VIEWER"
+
+  const [activeSection, setActiveSection] = useState<"integrations" | "users" | "debtors">(
+    "integrations",
+  )
 
   const [selectedClientCode, setSelectedClientCode] = useState<string | null>(null)
   const [selectedKeyPrefix, setSelectedKeyPrefix] = useState<string | null>(null)
@@ -843,6 +850,21 @@ export function AdminDashboard() {
                 <UserCog className="size-4 shrink-0" />
                 Usuarios Admin
               </button>
+              {canViewDebtors ? (
+                <button
+                  type="button"
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
+                    activeSection === "debtors"
+                      ? "bg-sky-50 text-sky-700"
+                      : "text-muted-foreground hover:bg-slate-50 hover:text-foreground",
+                  )}
+                  onClick={() => setActiveSection("debtors")}
+                >
+                  <FileSearch className="size-4 shrink-0" />
+                  Consulta de Deudores
+                </button>
+              ) : null}
             </nav>
           </aside>
 
@@ -1174,6 +1196,7 @@ export function AdminDashboard() {
         </Card>
           </>}
           {activeSection === "users" && <UsersPanel />}
+          {activeSection === "debtors" && canViewDebtors && <DebtorsQueryPanel />}
           </div>
         </div>
       </div>
