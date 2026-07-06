@@ -17,8 +17,9 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BCU Admin Console",
-  description: "Administración de integraciones, API keys y scopes para BCU API.",
+  title: "EnLaMano Console",
+  description:
+    "Administración de integraciones, API keys, usuarios y consultas de deudores para BCU API.",
 };
 
 export default function RootLayout({

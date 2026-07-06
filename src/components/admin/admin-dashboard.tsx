@@ -13,7 +13,6 @@ import {
   Link2,
   Link2Off,
   Loader2,
-  LogOut,
   Plus,
   Power,
   RefreshCw,
@@ -23,7 +22,7 @@ import {
   Users,
   X,
 } from "lucide-react"
-import { signOut, useSession } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { useEffect, useMemo, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -86,6 +85,7 @@ import type {
 import { cn } from "@/lib/utils"
 import { UsersPanel } from "@/components/admin/users-panel"
 import { DebtorsQueryPanel } from "@/components/admin/debtors-query-panel"
+import { UserDropdown } from "@/components/admin/user-dropdown"
 
 const createClientSchema = z.object({
   clientCode: z
@@ -794,14 +794,14 @@ export function AdminDashboard() {
             <div>
               <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium uppercase tracking-wide">
                 <Shield className="size-3.5" />
-                Admin · BCU API
+                Consola EnLaMano
               </p>
               <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-                Control de integraciones, API keys y scopes
+                Administración de accesos y operaciones
               </h1>
               <p className="mt-2 max-w-3xl text-sm text-sky-100/95 sm:text-base">
-                Panel operativo para administrar credenciales de consumo y permisos del backend
-                <span className="font-semibold"> /api/v1/admin/integrations</span>.
+                Gestiona integraciones, API keys y scopes, usuarios administrativos y consultas de
+                deudores desde un unico panel, con auditoria completa de cada accion.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -818,15 +818,7 @@ export function AdminDashboard() {
                 )}
                 Actualizar
               </Button>
-              <Button
-                variant="ghost"
-                className="text-white hover:bg-white/15 hover:text-white"
-                onClick={() => signOut({ callbackUrl: "/login" })}
-                type="button"
-              >
-                <LogOut className="size-4" />
-                Salir
-              </Button>
+              <UserDropdown />
             </div>
           </div>
         </section>
