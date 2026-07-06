@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import { format, parse, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
-import { CalendarIcon, Database, Loader2, Radio, Search } from "lucide-react"
+import { CalendarIcon, ChevronDown, Database, Loader2, Radio, Search } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -21,6 +21,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MonthPicker } from "@/components/ui/month-picker"
@@ -258,7 +263,13 @@ function CacheSourceIndicator({ fromCache }: { fromCache: boolean }) {
   )
 }
 
-function PeriodReport({ report }: { report: DebtorReportDto }) {
+function PeriodReport({
+  report,
+  defaultOpen = true,
+}: {
+  report: DebtorReportDto
+  defaultOpen?: boolean
+}) {
   const totalsColumns = useMemo<ColumnDef<DebtCategoryLineDto>[]>(
     () => [
       {
@@ -301,33 +312,47 @@ function PeriodReport({ report }: { report: DebtorReportDto }) {
 
   return (
     <Card className="border border-slate-200/70">
-      <CardHeader className="border-b border-slate-200/80">
-        <CardTitle className="inline-flex items-center gap-2 text-base">
-          Periodo {report.period}
-          <CacheSourceIndicator fromCache={report.fromCache} />
-        </CardTitle>
-        <CardDescription>Generado: {formatInstant(report.generatedAt)}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5 pt-4">
-        <div>
-          <p className="mb-2 text-sm font-medium">Totales</p>
-          <DataTable
-            columns={totalsColumns}
-            data={report.totals}
-            emptyMessage="Sin totales para este periodo"
-            getRowId={(row, index) => `${row.category}-${index}`}
-          />
-        </div>
-        <div>
-          <p className="mb-2 text-sm font-medium">Instituciones</p>
-          <DataTable
-            columns={institutionColumns}
-            data={report.institutions}
-            emptyMessage="Sin instituciones reportantes para este periodo"
-            getRowId={(row, index) => `${row.institutionName}-${index}`}
-          />
-        </div>
-      </CardContent>
+      <Collapsible defaultOpen={defaultOpen}>
+        <CollapsibleTrigger
+          render={
+            <button
+              type="button"
+              className="group/collapsible-trigger w-full cursor-pointer text-left"
+            />
+          }
+        >
+          <CardHeader className="border-b border-slate-200/80">
+            <CardTitle className="inline-flex items-center gap-2 text-base">
+              <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]/collapsible-trigger:rotate-180" />
+              Periodo {report.period}
+              <CacheSourceIndicator fromCache={report.fromCache} />
+            </CardTitle>
+            <CardDescription>Generado: {formatInstant(report.generatedAt)}</CardDescription>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsiblePanel>
+          <CardContent className="space-y-5 pt-4">
+            <div>
+              <p className="mb-2 text-sm font-medium">Totales</p>
+              <DataTable
+                columns={totalsColumns}
+                data={report.totals}
+                emptyMessage="Sin totales para este periodo"
+                getRowId={(row, index) => `${row.category}-${index}`}
+              />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-medium">Instituciones</p>
+              <DataTable
+                columns={institutionColumns}
+                data={report.institutions}
+                emptyMessage="Sin instituciones reportantes para este periodo"
+                getRowId={(row, index) => `${row.institutionName}-${index}`}
+              />
+            </div>
+          </CardContent>
+        </CollapsiblePanel>
+      </Collapsible>
     </Card>
   )
 }
@@ -507,8 +532,12 @@ export function DebtorsQueryPanel() {
           <DebtorIdentity report={report} />
 
           {report.reports.length ? (
-            report.reports.map((periodReport) => (
-              <PeriodReport key={periodReport.period} report={periodReport} />
+            report.reports.map((periodReport, index) => (
+              <PeriodReport
+                key={periodReport.period}
+                report={periodReport}
+                defaultOpen={index === report.reports.length - 1}
+              />
             ))
           ) : (
             <Card className="border border-slate-200/70">
