@@ -14,7 +14,6 @@ import { z } from "zod"
 import { DataTable } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import {
   Card,
   CardContent,
@@ -24,6 +23,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { MonthPicker } from "@/components/ui/month-picker"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
@@ -106,13 +106,15 @@ function PeriodField({
   error?: string
 }) {
   const selected = value ? parse(value, "yyyy-MM", new Date()) : undefined
+  const [open, setOpen] = useState(false)
+  const now = new Date()
 
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>
         {label} <span className="text-muted-foreground">(opcional)</span>
       </Label>
-      <Popover>
+      <Popover onOpenChange={setOpen} open={open}>
         <PopoverTrigger
           render={
             <Button
@@ -133,13 +135,14 @@ function PeriodField({
           )}
         </PopoverTrigger>
         <PopoverContent align="start" className="w-auto p-0">
-          <Calendar
-            captionLayout="dropdown"
-            defaultMonth={selected}
-            disabled={{ after: new Date() }}
-            endMonth={new Date()}
-            mode="single"
-            onSelect={(date) => onChange(date ? format(date, "yyyy-MM") : "")}
+          <MonthPicker
+            defaultYear={selected?.getFullYear() ?? now.getFullYear()}
+            disabled={(date) => date > now}
+            locale="es"
+            onSelect={(date) => {
+              onChange(format(date, "yyyy-MM"))
+              setOpen(false)
+            }}
             selected={selected}
           />
         </PopoverContent>

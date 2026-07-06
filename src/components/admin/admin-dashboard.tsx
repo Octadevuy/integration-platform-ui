@@ -206,11 +206,18 @@ export function AdminDashboard() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
 
-  const canViewDebtors = session?.role === "SUPER_ADMIN" || session?.role === "DEBTOR_VIEWER"
+  const isSuperAdmin = session?.role === "SUPER_ADMIN"
+  const canViewDebtors = isSuperAdmin || session?.role === "DEBTOR_VIEWER"
 
   const [activeSection, setActiveSection] = useState<"integrations" | "users" | "debtors">(
     "integrations",
   )
+
+  useEffect(() => {
+    if (session && !isSuperAdmin) {
+      setActiveSection("debtors")
+    }
+  }, [session, isSuperAdmin])
 
   const [selectedClientCode, setSelectedClientCode] = useState<string | null>(null)
   const [selectedKeyPrefix, setSelectedKeyPrefix] = useState<string | null>(null)
@@ -233,6 +240,7 @@ export function AdminDashboard() {
   const clientsQuery = useQuery({
     queryKey: ["clients"],
     queryFn: () => listClients(),
+    enabled: isSuperAdmin,
   })
 
   const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data])
@@ -288,6 +296,7 @@ export function AdminDashboard() {
         clientCode: effectiveSelectedClientCode ?? undefined,
         size: 100,
       }),
+    enabled: isSuperAdmin,
   })
 
   const scopedAuditActions = useMemo<AuditEventResponse[]>(
@@ -298,6 +307,7 @@ export function AdminDashboard() {
   const scopesQuery = useQuery({
     queryKey: ["available-scopes"],
     queryFn: () => listScopes(),
+    enabled: isSuperAdmin,
   })
 
   const availableScopes = useMemo<PermissionScopeResponse[]>(() => scopesQuery.data ?? [], [scopesQuery.data])
@@ -824,32 +834,36 @@ export function AdminDashboard() {
         <div className="flex gap-5 items-start">
           <aside className="w-52 shrink-0">
             <nav className="flex flex-col gap-1 rounded-xl border border-slate-200/70 bg-white p-2 shadow-sm">
-              <button
-                type="button"
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
-                  activeSection === "integrations"
-                    ? "bg-sky-50 text-sky-700"
-                    : "text-muted-foreground hover:bg-slate-50 hover:text-foreground",
-                )}
-                onClick={() => setActiveSection("integrations")}
-              >
-                <Link2 className="size-4 shrink-0" />
-                Integraciones
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
-                  activeSection === "users"
-                    ? "bg-sky-50 text-sky-700"
-                    : "text-muted-foreground hover:bg-slate-50 hover:text-foreground",
-                )}
-                onClick={() => setActiveSection("users")}
-              >
-                <UserCog className="size-4 shrink-0" />
-                Usuarios Admin
-              </button>
+              {isSuperAdmin ? (
+                <button
+                  type="button"
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
+                    activeSection === "integrations"
+                      ? "bg-sky-50 text-sky-700"
+                      : "text-muted-foreground hover:bg-slate-50 hover:text-foreground",
+                  )}
+                  onClick={() => setActiveSection("integrations")}
+                >
+                  <Link2 className="size-4 shrink-0" />
+                  Integraciones
+                </button>
+              ) : null}
+              {isSuperAdmin ? (
+                <button
+                  type="button"
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
+                    activeSection === "users"
+                      ? "bg-sky-50 text-sky-700"
+                      : "text-muted-foreground hover:bg-slate-50 hover:text-foreground",
+                  )}
+                  onClick={() => setActiveSection("users")}
+                >
+                  <UserCog className="size-4 shrink-0" />
+                  Usuarios Admin
+                </button>
+              ) : null}
               {canViewDebtors ? (
                 <button
                   type="button"
