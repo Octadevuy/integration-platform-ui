@@ -176,6 +176,7 @@ export interface DebtorReportDto {
   totals: DebtCategoryLineDto[]
   institutions: InstitutionDebtDto[]
   generatedAt: string
+  fromCache: boolean
 }
 
 export interface DebtorReportResponseDto {

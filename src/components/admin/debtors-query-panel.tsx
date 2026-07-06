@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import { format, parse, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
-import { CalendarIcon, Loader2, Search } from "lucide-react"
+import { CalendarIcon, Database, Loader2, Radio, Search } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { getDebtorReport } from "@/lib/admin-debtors-api"
 import { cn } from "@/lib/utils"
 import type {
@@ -231,6 +232,32 @@ function DebtorIdentity({ report }: { report: DebtorReportResponseDto }) {
   )
 }
 
+function CacheSourceIndicator({ fromCache }: { fromCache: boolean }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            className={cn(
+              "inline-flex size-5 items-center justify-center rounded-full",
+              fromCache ? "text-emerald-600" : "text-sky-600"
+            )}
+          />
+        }
+      >
+        {fromCache ? (
+          <Database className="size-4" aria-label="Resultado desde cache" />
+        ) : (
+          <Radio className="size-4" aria-label="Consulta en vivo al BCU" />
+        )}
+      </TooltipTrigger>
+      <TooltipContent>
+        {fromCache ? "Resultado servido desde cache" : "Consulta en vivo al BCU"}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 function PeriodReport({ report }: { report: DebtorReportDto }) {
   const totalsColumns = useMemo<ColumnDef<DebtCategoryLineDto>[]>(
     () => [
@@ -275,7 +302,10 @@ function PeriodReport({ report }: { report: DebtorReportDto }) {
   return (
     <Card className="border border-slate-200/70">
       <CardHeader className="border-b border-slate-200/80">
-        <CardTitle className="text-base">Periodo {report.period}</CardTitle>
+        <CardTitle className="inline-flex items-center gap-2 text-base">
+          Periodo {report.period}
+          <CacheSourceIndicator fromCache={report.fromCache} />
+        </CardTitle>
         <CardDescription>Generado: {formatInstant(report.generatedAt)}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5 pt-4">
