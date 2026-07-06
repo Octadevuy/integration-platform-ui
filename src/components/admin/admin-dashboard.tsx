@@ -787,9 +787,9 @@ export function AdminDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f0f9ff_0%,#f9fafb_45%,#ffffff_100%)] px-4 py-6 text-foreground sm:px-8">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,var(--color-accent)_0%,var(--color-background)_45%,var(--color-background)_100%)] px-4 py-6 text-foreground sm:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
-        <section className="rounded-2xl bg-gradient-to-r from-cyan-600 via-sky-700 to-slate-900 p-6 text-white shadow-lg shadow-sky-900/20">
+        <section className="rounded-2xl bg-gradient-to-r from-ring via-accent-foreground to-foreground p-6 text-white shadow-lg shadow-black/20">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium uppercase tracking-wide">
@@ -799,7 +799,7 @@ export function AdminDashboard() {
               <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
                 Administración de accesos y operaciones
               </h1>
-              <p className="mt-2 max-w-3xl text-sm text-sky-100/95 sm:text-base">
+              <p className="mt-2 max-w-3xl text-sm text-white/85 sm:text-base">
                 Gestiona integraciones, API keys y scopes, usuarios administrativos y consultas de
                 deudores desde un unico panel, con auditoria completa de cada accion.
               </p>
@@ -825,15 +825,15 @@ export function AdminDashboard() {
 
         <div className="flex gap-5 items-start">
           <aside className="w-52 shrink-0">
-            <nav className="flex flex-col gap-1 rounded-xl border border-slate-200/70 bg-white p-2 shadow-sm">
+            <nav className="flex flex-col gap-1 rounded-xl border border-border bg-card p-2 shadow-sm">
               {isSuperAdmin ? (
                 <button
                   type="button"
                   className={cn(
                     "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
                     activeSection === "integrations"
-                      ? "bg-sky-50 text-sky-700"
-                      : "text-muted-foreground hover:bg-slate-50 hover:text-foreground",
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                   onClick={() => setActiveSection("integrations")}
                 >
@@ -847,8 +847,8 @@ export function AdminDashboard() {
                   className={cn(
                     "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
                     activeSection === "users"
-                      ? "bg-sky-50 text-sky-700"
-                      : "text-muted-foreground hover:bg-slate-50 hover:text-foreground",
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                   onClick={() => setActiveSection("users")}
                 >
@@ -862,8 +862,8 @@ export function AdminDashboard() {
                   className={cn(
                     "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
                     activeSection === "debtors"
-                      ? "bg-sky-50 text-sky-700"
-                      : "text-muted-foreground hover:bg-slate-50 hover:text-foreground",
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                   onClick={() => setActiveSection("debtors")}
                 >
@@ -878,10 +878,10 @@ export function AdminDashboard() {
           {activeSection === "integrations" && <>
 
         <section className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
-          <Card className="border border-slate-200/70">
-            <CardHeader className="border-b border-slate-200/80">
+          <Card className="border border-border">
+            <CardHeader className="border-b border-border">
               <CardTitle className="inline-flex items-center gap-2">
-                <Users className="size-4 text-sky-700" />
+                <Users className="size-4 text-accent-foreground" />
                 Clientes de integracion
               </CardTitle>
               <CardDescription>Crea, actualiza y desactiva consumidores internos.</CardDescription>
@@ -945,10 +945,10 @@ export function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border border-slate-200/70">
-            <CardHeader className="border-b border-slate-200/80">
+          <Card className="border border-border">
+            <CardHeader className="border-b border-border">
               <CardTitle className="inline-flex items-center gap-2">
-                <KeyRound className="size-4 text-sky-700" />
+                <KeyRound className="size-4 text-accent-foreground" />
                 API keys
               </CardTitle>
               <CardDescription>
@@ -1008,7 +1008,7 @@ export function AdminDashboard() {
                     <Badge variant="outline">{selectedKey.keyPrefix}</Badge>
                     {selectedKey.scopes.map((scope) => (
                       <button
-                        className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5 text-xs hover:bg-slate-100"
+                        className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs hover:bg-muted"
                         key={scope}
                         onClick={() =>
                           removeScopeMutation.mutate({
@@ -1104,10 +1104,10 @@ export function AdminDashboard() {
           </Card>
         </section>
 
-        <Card className="border border-slate-200/70">
-          <CardHeader className="border-b border-slate-200/80">
+        <Card className="border border-border">
+          <CardHeader className="border-b border-border">
             <CardTitle className="inline-flex items-center gap-2">
-              <Eye className="size-4 text-sky-700" />
+              <Eye className="size-4 text-accent-foreground" />
               Detalle de cliente
             </CardTitle>
             <CardDescription>

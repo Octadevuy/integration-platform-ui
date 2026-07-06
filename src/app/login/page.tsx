@@ -58,7 +58,7 @@ export default function LoginPage() {
                     <div className="flex items-center justify-center size-12 rounded-xl bg-primary text-primary-foreground">
                         <Lock className="size-6" />
                     </div>
-                    <h1 className="text-2xl font-semibold tracking-tight font-heading">BCU Admin Console</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight font-heading">Operaciones</h1>
                     <p className="text-sm text-muted-foreground">Ingresá con tus credenciales de administración</p>
                 </div>
 

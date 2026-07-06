@@ -263,10 +263,10 @@ export function UsersPanel() {
 
   return (
     <>
-      <Card className="border border-slate-200/70">
-        <CardHeader className="border-b border-slate-200/80">
+      <Card className="border border-border">
+        <CardHeader className="border-b border-border">
           <CardTitle className="inline-flex items-center gap-2">
-            <UserCog className="size-4 text-sky-700" />
+            <UserCog className="size-4 text-accent-foreground" />
             Usuarios admin
           </CardTitle>
           <CardDescription>

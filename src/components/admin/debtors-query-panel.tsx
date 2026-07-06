@@ -245,7 +245,7 @@ function CacheSourceIndicator({ fromCache }: { fromCache: boolean }) {
           <span
             className={cn(
               "inline-flex size-5 items-center justify-center rounded-full",
-              fromCache ? "text-emerald-600" : "text-sky-600"
+              fromCache ? "text-emerald-600" : "text-muted-foreground"
             )}
           />
         }
@@ -311,7 +311,7 @@ function PeriodReport({
   )
 
   return (
-    <Card className="border border-slate-200/70">
+    <Card className="border border-border">
       <Collapsible defaultOpen={defaultOpen}>
         <CollapsibleTrigger
           render={
@@ -321,7 +321,7 @@ function PeriodReport({
             />
           }
         >
-          <CardHeader className="border-b border-slate-200/80">
+          <CardHeader className="border-b border-border">
             <CardTitle className="inline-flex items-center gap-2 text-base">
               <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]/collapsible-trigger:rotate-180" />
               Periodo {report.period}
@@ -408,10 +408,10 @@ export function DebtorsQueryPanel() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Card className="border border-slate-200/70">
-        <CardHeader className="border-b border-slate-200/80">
+      <Card className="border border-border">
+        <CardHeader className="border-b border-border">
           <CardTitle className="inline-flex items-center gap-2">
-            <Search className="size-4 text-sky-700" />
+            <Search className="size-4 text-accent-foreground" />
             Consulta de deudores
           </CardTitle>
           <CardDescription>
@@ -496,7 +496,7 @@ export function DebtorsQueryPanel() {
       </Card>
 
       {!submittedQuery ? (
-        <Card className="border border-dashed border-slate-200/70">
+        <Card className="border border-dashed border-border">
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             Ingresa un documento y consulta para ver el informe de deudor.
           </CardContent>
@@ -504,7 +504,7 @@ export function DebtorsQueryPanel() {
       ) : null}
 
       {submittedQuery && reportQuery.isFetching ? (
-        <Card className="border border-slate-200/70">
+        <Card className="border border-border">
           <CardContent className="space-y-3 py-4">
             <Skeleton className="h-5 w-52" />
             <Skeleton className="h-4 w-72" />
@@ -540,7 +540,7 @@ export function DebtorsQueryPanel() {
               />
             ))
           ) : (
-            <Card className="border border-slate-200/70">
+            <Card className="border border-border">
               <CardContent className="py-6 text-center text-sm text-muted-foreground">
                 No hay informes disponibles para el periodo solicitado.
               </CardContent>
