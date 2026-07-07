@@ -10,9 +10,18 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      # This must be the real public origin of the deployed environment
+      # (staging/production), not http://localhost:3000. It fixes the
+      # trusted origin Auth.js uses for redirects independently of the
+      # incoming Host header (see the trustHost comment in src/auth.ts) -
+      # leaving it as localhost in a real deployment defeats that mitigation.
       - NEXTAUTH_URL=http://localhost:3000
       - AUTH_TRUST_HOST=true
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-your-secret-key-here}
+      # Required, no insecure default: generate with `openssl rand -base64 32`
+      # and export NEXTAUTH_SECRET before running docker compose. Startup
+      # fails fast if it is missing instead of signing sessions with a
+      # publicly-known secret.
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET, e.g. via: openssl rand -base64 32}
     restart: unless-stopped
     networks:
       - bcu-network

@@ -44,6 +44,14 @@ AUTH_SECRET=<secreto para firmar la sesion NextAuth>
 BCU_API_BASE_URL=http://localhost:8080
 ```
 
+Generar `AUTH_SECRET` con un valor aleatorio, por ejemplo:
+
+```bash
+openssl rand -base64 32
+```
+
+No usar valores por defecto ni de ejemplo en ningun ambiente desplegado (ver `docker-compose.yml`, donde `NEXTAUTH_SECRET` es obligatoria y el arranque falla si no se define).
+
 Variable opcional (usada como fallback de `BCU_API_BASE_URL`):
 
 ```env

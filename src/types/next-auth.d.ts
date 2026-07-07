@@ -7,7 +7,9 @@ declare module "next-auth" {
         role?: string
     }
     interface Session {
-        backendToken?: string
+        // backendToken intentionally omitted: it must never be part of the
+        // client-visible session (see session() callback in src/auth.ts).
+        // Server-side code reads it via getToken() from "next-auth/jwt".
         role?: string
     }
 }

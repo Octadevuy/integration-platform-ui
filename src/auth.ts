@@ -2,6 +2,17 @@ import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+    // trustHost makes Auth.js accept the incoming Host/X-Forwarded-Host
+    // header to compute the request origin, which on its own would let a
+    // spoofed Host header influence redirect URLs behind a misconfigured
+    // reverse proxy. The actual mitigation is that AUTH_URL (or the legacy
+    // NEXTAUTH_URL, see node_modules/next-auth/lib/env.js:reqWithEnvURL) is
+    // set explicitly per environment - when present it always overrides the
+    // request's origin regardless of trustHost. docker-compose.yml already
+    // sets NEXTAUTH_URL; make sure every real deployment (staging/prod)
+    // overrides it with that environment's actual public origin before
+    // exposing this app to the internet - never leave it defaulted to
+    // http://localhost:3000.
     trustHost: true,
     providers: [
         Credentials({
@@ -57,9 +68,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return token
         },
         session({ session, token }) {
+            // Do NOT copy `backendToken` here: this callback's return value is
+            // exactly what GET /api/auth/session sends to the browser and what
+            // useSession() exposes client-side. The backend JWT must stay only
+            // in the encrypted NextAuth JWT (set in the `jwt` callback above);
+            // server-side code (BFF proxy routes) reads it via getToken() from
+            // "next-auth/jwt" instead of via session.backendToken.
             return {
                 ...session,
-                backendToken: token.backendToken as string | undefined,
                 role: token.role as string | undefined,
             }
         },
