@@ -86,6 +86,14 @@ export interface AuditEventQuery {
   size?: number
 }
 
+export interface AuditEventPageResponse {
+  content: AuditEventResponse[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
 export type UserRole = "ADMIN" | "SUPER_ADMIN" | "DEBTOR_VIEWER"
 
 export interface UserResponse {

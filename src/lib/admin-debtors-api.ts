@@ -1,6 +1,6 @@
 import { ApiRequestError } from "@/lib/admin-api"
 import type {
-  AuditEventResponse,
+  AuditEventPageResponse,
   DebtorQueryHistoryQuery,
   DebtorReportQuery,
   DebtorReportResponseDto,
@@ -72,7 +72,7 @@ export async function getDebtorReport(
 
 export async function listDebtorQueryHistory(
   params: DebtorQueryHistoryQuery = {},
-): Promise<AuditEventResponse[]> {
+): Promise<AuditEventPageResponse> {
   const query = new URLSearchParams()
   if (params.documentNumber) query.set("documentNumber", params.documentNumber)
   if (params.from) query.set("from", params.from)
@@ -81,5 +81,5 @@ export async function listDebtorQueryHistory(
   if (typeof params.size === "number") query.set("size", String(params.size))
 
   const qs = query.toString()
-  return request<AuditEventResponse[]>(`history${qs ? `?${qs}` : ""}`)
+  return request<AuditEventPageResponse>(`history${qs ? `?${qs}` : ""}`)
 }
