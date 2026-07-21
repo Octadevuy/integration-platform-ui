@@ -86,4 +86,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session: {
         strategy: "jwt",
     },
+    // Explicit, auditable restatement of the secure defaults Auth.js already
+    // applies automatically (see defaultCookies() in
+    // node_modules/@auth/core/lib/utils/cookie.js) - not a behavior change.
+    // `secure` and the cookie `name`/`__Secure-` prefix are intentionally
+    // left unset so they keep being computed per-request from the request
+    // protocol (node_modules/@auth/core/lib/init.js: `useSecureCookies =
+    // config.useSecureCookies ?? url.protocol === "https:"`). Hardcoding
+    // `secure: true` here would break local dev over http://localhost, and
+    // hardcoding `secure: false` would silently downgrade production.
+    cookies: {
+        sessionToken: {
+            options: {
+                httpOnly: true,
+                sameSite: "lax",
+            },
+        },
+    },
 })

@@ -51,7 +51,7 @@ import type {
   InstitutionDebtDto,
 } from "@/types/admin"
 
-const documentTypeValues = ["CI", "IDE", "RUT", "PASSPORT", "OTHER"] as const
+const documentTypeValues = ["IDE"] as const
 
 const periodPattern = /^\d{4}-(0[1-9]|1[0-2])$/
 

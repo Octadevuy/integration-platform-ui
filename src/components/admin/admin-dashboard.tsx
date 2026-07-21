@@ -9,6 +9,7 @@ import {
   Copy,
   Eye,
   FileSearch,
+  History,
   KeyRound,
   Link2,
   Link2Off,
@@ -85,6 +86,7 @@ import type {
 import { cn } from "@/lib/utils"
 import { UsersPanel } from "@/components/admin/users-panel"
 import { DebtorsQueryPanel } from "@/components/admin/debtors-query-panel"
+import { DebtorsHistoryPanel } from "@/components/admin/debtors-history-panel"
 import { UserDropdown } from "@/components/admin/user-dropdown"
 
 const createClientSchema = z.object({
@@ -209,9 +211,9 @@ export function AdminDashboard() {
   const isSuperAdmin = session?.role === "SUPER_ADMIN"
   const canViewDebtors = isSuperAdmin || session?.role === "DEBTOR_VIEWER"
 
-  const [activeSection, setActiveSection] = useState<"integrations" | "users" | "debtors">(
-    "integrations",
-  )
+  const [activeSection, setActiveSection] = useState<
+    "integrations" | "users" | "debtors" | "debtor-history"
+  >("integrations")
 
   useEffect(() => {
     if (session && !isSuperAdmin) {
@@ -871,6 +873,21 @@ export function AdminDashboard() {
                   Consulta de Deudores
                 </button>
               ) : null}
+              {canViewDebtors ? (
+                <button
+                  type="button"
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
+                    activeSection === "debtor-history"
+                      ? "bg-brand-icon-soft text-brand-icon"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                  onClick={() => setActiveSection("debtor-history")}
+                >
+                  <History className="size-4 shrink-0" />
+                  Historial de Consultas
+                </button>
+              ) : null}
             </nav>
           </aside>
 
@@ -1203,6 +1220,7 @@ export function AdminDashboard() {
           </>}
           {activeSection === "users" && <UsersPanel />}
           {activeSection === "debtors" && canViewDebtors && <DebtorsQueryPanel />}
+          {activeSection === "debtor-history" && canViewDebtors && <DebtorsHistoryPanel />}
           </div>
         </div>
       </div>

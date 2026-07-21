@@ -54,10 +54,11 @@ export type AuditAction =
   | "SCOPE_ASSIGNED"
   | "SCOPE_REMOVED"
   | "AUTH_FAILED"
+  | "DEBTOR_REPORT_QUERIED"
 
 export type AuditOutcome = "SUCCESS" | "FAILURE"
 
-export type AuditTargetType = "CLIENT" | "API_KEY" | "SCOPE" | "AUTH"
+export type AuditTargetType = "CLIENT" | "API_KEY" | "SCOPE" | "AUTH" | "DEBTOR"
 
 export interface AuditEventResponse {
   id: number
@@ -191,4 +192,12 @@ export interface DebtorReportQuery {
   country?: string
   periodFrom?: string
   periodTo?: string
+}
+
+export interface DebtorQueryHistoryQuery {
+  documentNumber?: string | null
+  from?: string | null
+  to?: string | null
+  page?: number
+  size?: number
 }
