@@ -364,7 +364,7 @@ export function DebtorsQueryPanel() {
   const form = useForm<QueryForm>({
     resolver: zodResolver(querySchema),
     defaultValues: {
-      documentType: "CI",
+      documentType: "IDE",
       number: "",
       country: "UY",
       periodFrom: "",
