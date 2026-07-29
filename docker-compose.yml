@@ -22,6 +22,11 @@ services:
       # fails fast if it is missing instead of signing sessions with a
       # publicly-known secret.
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET, e.g. via: openssl rand -base64 32}
+      # Optional: when empty, OpenTelemetry export to Azure Monitor is
+      # disabled and the app only logs a warning at startup. On Azure App
+      # Service this is usually injected by the platform when the app is
+      # linked to an Application Insights resource.
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     restart: unless-stopped
     networks:
       - bcu-network

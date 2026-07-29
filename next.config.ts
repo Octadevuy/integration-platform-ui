@@ -31,6 +31,11 @@ const nextConfig: NextConfig = {
   logging: {
     serverFunctions: false,
   },
+  // The Azure Monitor OTel distro (and its gRPC/protobuf dependencies)
+  // breaks when bundled into the server build; load it from node_modules
+  // at runtime instead. Requires the package in "dependencies" since the
+  // Docker image installs with --prod.
+  serverExternalPackages: ["@azure/monitor-opentelemetry"],
   async headers() {
     return [
       {
