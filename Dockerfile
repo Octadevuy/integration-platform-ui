@@ -1,5 +1,8 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:22-alpine3.22 AS builder
+
+# Apply security updates
+RUN apk upgrade --no-cache
 
 # Install pnpm
 RUN npm install -g pnpm@10.33.0
@@ -20,7 +23,10 @@ COPY . .
 RUN pnpm run build
 
 # Production stage
-FROM node:20-alpine
+FROM node:22-alpine3.22
+
+# Apply security updates
+RUN apk upgrade --no-cache
 
 # Install pnpm in production image
 RUN npm install -g pnpm@10.33.0
@@ -43,11 +49,6 @@ EXPOSE 3000
 
 # Azure App Service uses this to route traffic to the container port.
 ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
 # Start the application
-CMD ["pnpm", "start", "-p", "3000", "-H", "0.0.0.0"]
+CMD ["pnpm", "start", "-p", "3000"]
