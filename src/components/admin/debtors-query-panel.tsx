@@ -37,9 +37,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { getDebtorReport } from "@/lib/admin-debtors-api"
+import {
+  buildSections,
+  formatNumber,
+  ratingLabels,
+  type ReportSection,
+} from "@/lib/debtor-report"
 import { cn } from "@/lib/utils"
 import type {
-  DebtCategoryLineDto,
   DebtorReportDto,
   DebtorReportQuery,
   DebtorReportResponseDto,
@@ -163,44 +168,6 @@ function formatInstant(value: string | null | undefined) {
   }
 }
 
-// Spanish display names for the coarse categories, used for totals lines and for
-// lines cached before the backend exposed conceptDescription.
-const categoryLabels: Record<string, string> = {
-  CURRENT: "Vigente",
-  CURRENT_NON_AUTO_LIQUIDATING: "Vigente - no autoliquidable",
-  // CONTINGENT aggregates contingencias, contratos suscriptos and the three
-  // garantías rubros, so the bare "Contingencias" label would be misleading.
-  CONTINGENT: "Contingencias y garantías",
-  WRITTEN_OFF: "Vencido y castigado",
-  PROVISIONS: "Previsiones",
-}
-
-function lineLabel(line: DebtCategoryLineDto) {
-  return line.conceptDescription ?? categoryLabels[line.category] ?? line.category
-}
-
-function formatNumber(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) return "-"
-
-  return value.toLocaleString("es-UY", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-}
-
-// Raw BCU rating codes as shown on the BCU site (the API sends enum names like "C1C").
-const ratingLabels: Record<string, string> = {
-  C1A: "1A",
-  C1C: "1C",
-  C2A: "2A",
-  C2B: "2B",
-  C3: "3",
-  C4: "4",
-  C5: "5",
-  UNCLASSIFIED: "Sin clasificar",
-  OTHER: "Otro",
-}
-
 // Risk tone per rating, used to color the calificación badge on each
 // institution header (1A/1C healthy, 2A/2B watch, 3/4/5 impaired).
 const ratingTones: Record<string, string> = {
@@ -211,58 +178,6 @@ const ratingTones: Record<string, string> = {
   C3: "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400",
   C4: "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400",
   C5: "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400",
-}
-
-interface RubroLineRow {
-  label: string
-  mn: number
-  me: number
-}
-
-// One group of the per-period table, mirroring the BCU site layout: a "Total"
-// section followed by one section per institution, each listing its rubros.
-interface ReportSection {
-  title: string
-  rating?: string
-  rows: RubroLineRow[]
-}
-
-// The "Total" section on the BCU site lists per-rubro sums across institutions,
-// so totals are computed here from the institution lines (the API's `totals`
-// field aggregates by coarse category instead and is not shown in this table).
-function buildSections(report: DebtorReportDto): ReportSection[] {
-  const totals = new Map<string, RubroLineRow>()
-  const institutionSections: ReportSection[] = []
-
-  for (const institution of report.institutions) {
-    const rows: RubroLineRow[] = []
-
-    for (const line of institution.lines) {
-      const label = lineLabel(line)
-      const mn = line.amounts?.localPesos?.value ?? 0
-      const me = line.amounts?.foreignUsd?.value ?? 0
-
-      rows.push({ label, mn, me })
-
-      const key = line.concept ?? line.category
-      const total = totals.get(key)
-      if (total) {
-        total.mn += mn
-        total.me += me
-      } else {
-        totals.set(key, { label, mn, me })
-      }
-    }
-
-    institutionSections.push({
-      title: institution.institutionName,
-      rating: institution.rating,
-      rows,
-    })
-  }
-
-  const totalSection: ReportSection = { title: "Total", rows: [...totals.values()] }
-  return [totalSection, ...institutionSections]
 }
 
 function RubroTable({ sections }: { sections: ReportSection[] }) {
