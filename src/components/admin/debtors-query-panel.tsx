@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useQuery } from "@tanstack/react-query"
-import type { ColumnDef } from "@tanstack/react-table"
 import { format, parse, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import { CalendarIcon, ChevronDown, Database, Loader2, Radio, Search } from "lucide-react"
@@ -11,8 +10,6 @@ import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
-import { DataTable } from "@/components/data-table"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -42,13 +39,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { getDebtorReport } from "@/lib/admin-debtors-api"
 import { cn } from "@/lib/utils"
 import type {
-  AmountDto,
   DebtCategoryLineDto,
   DebtorReportDto,
   DebtorReportQuery,
   DebtorReportResponseDto,
   DocumentType,
-  InstitutionDebtDto,
 } from "@/types/admin"
 
 const documentTypeValues = ["IDE"] as const
@@ -168,56 +163,195 @@ function formatInstant(value: string | null | undefined) {
   }
 }
 
-function formatAmount(amount: AmountDto | null | undefined) {
-  if (!amount) return "-"
-
-  const formattedValue = Number.isFinite(amount.value)
-    ? amount.value.toLocaleString("es-UY", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })
-    : String(amount.value)
-
-  return `${formattedValue} ${amount.currency}`
+// Spanish display names for the coarse categories, used for totals lines and for
+// lines cached before the backend exposed conceptDescription.
+const categoryLabels: Record<string, string> = {
+  CURRENT: "Vigente",
+  CURRENT_NON_AUTO_LIQUIDATING: "Vigente - no autoliquidable",
+  // CONTINGENT aggregates contingencias, contratos suscriptos and the three
+  // garantías rubros, so the bare "Contingencias" label would be misleading.
+  CONTINGENT: "Contingencias y garantías",
+  WRITTEN_OFF: "Vencido y castigado",
+  PROVISIONS: "Previsiones",
 }
 
-// Renders whatever currency-view keys are present rather than hardcoding
-// localPesos/foreignPesos/foreignUsd, in case the backend shape changes.
-function renderAmounts(amounts: unknown) {
-  if (!amounts || typeof amounts !== "object") {
-    return <span className="text-muted-foreground">-</span>
+function lineLabel(line: DebtCategoryLineDto) {
+  return line.conceptDescription ?? categoryLabels[line.category] ?? line.category
+}
+
+function formatNumber(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return "-"
+
+  return value.toLocaleString("es-UY", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
+// Raw BCU rating codes as shown on the BCU site (the API sends enum names like "C1C").
+const ratingLabels: Record<string, string> = {
+  C1A: "1A",
+  C1C: "1C",
+  C2A: "2A",
+  C2B: "2B",
+  C3: "3",
+  C4: "4",
+  C5: "5",
+  UNCLASSIFIED: "Sin clasificar",
+  OTHER: "Otro",
+}
+
+// Risk tone per rating, used to color the calificación badge on each
+// institution header (1A/1C healthy, 2A/2B watch, 3/4/5 impaired).
+const ratingTones: Record<string, string> = {
+  C1A: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  C1C: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  C2A: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  C2B: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  C3: "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400",
+  C4: "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400",
+  C5: "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400",
+}
+
+interface RubroLineRow {
+  label: string
+  mn: number
+  me: number
+}
+
+// One group of the per-period table, mirroring the BCU site layout: a "Total"
+// section followed by one section per institution, each listing its rubros.
+interface ReportSection {
+  title: string
+  rating?: string
+  rows: RubroLineRow[]
+}
+
+// The "Total" section on the BCU site lists per-rubro sums across institutions,
+// so totals are computed here from the institution lines (the API's `totals`
+// field aggregates by coarse category instead and is not shown in this table).
+function buildSections(report: DebtorReportDto): ReportSection[] {
+  const totals = new Map<string, RubroLineRow>()
+  const institutionSections: ReportSection[] = []
+
+  for (const institution of report.institutions) {
+    const rows: RubroLineRow[] = []
+
+    for (const line of institution.lines) {
+      const label = lineLabel(line)
+      const mn = line.amounts?.localPesos?.value ?? 0
+      const me = line.amounts?.foreignUsd?.value ?? 0
+
+      rows.push({ label, mn, me })
+
+      const key = line.concept ?? line.category
+      const total = totals.get(key)
+      if (total) {
+        total.mn += mn
+        total.me += me
+      } else {
+        totals.set(key, { label, mn, me })
+      }
+    }
+
+    institutionSections.push({
+      title: institution.institutionName,
+      rating: institution.rating,
+      rows,
+    })
   }
 
-  const entries = Object.entries(amounts as Record<string, AmountDto>)
+  const totalSection: ReportSection = { title: "Total", rows: [...totals.values()] }
+  return [totalSection, ...institutionSections]
+}
 
-  if (!entries.length) {
-    return <span className="text-muted-foreground">-</span>
+function RubroTable({ sections }: { sections: ReportSection[] }) {
+  // Rows are collapsed per section inside a single <table> (instead of one
+  // Collapsible per section) so the amount columns stay aligned across groups.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+
+  const toggle = (key: string) => {
+    setCollapsed((current) => {
+      const next = new Set(current)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
   }
 
   return (
-    <div className="flex flex-col gap-0.5 text-xs">
-      {entries.map(([key, value]) => (
-        <span key={key}>
-          <span className="text-muted-foreground">{key}:</span> {formatAmount(value)}
-        </span>
-      ))}
-    </div>
-  )
-}
+    <div className="overflow-x-auto rounded-md border border-border">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border text-xs text-muted-foreground">
+            <th className="px-3 py-2 text-left font-medium">Rubro</th>
+            <th className="px-3 py-2 text-right font-medium">MN $</th>
+            <th className="px-3 py-2 text-right font-medium">ME $</th>
+          </tr>
+        </thead>
+        {sections.map((section, sectionIndex) => {
+          const key = `${section.title}-${sectionIndex}`
+          const isOpen = !collapsed.has(key)
 
-function renderCategoryLines(lines: DebtCategoryLineDto[]) {
-  if (!lines.length) {
-    return <span className="text-xs text-muted-foreground">Sin lineas</span>
-  }
-
-  return (
-    <div className="flex flex-col gap-2">
-      {lines.map((line, index) => (
-        <div key={`${line.category}-${index}`} className="text-xs">
-          <span className="font-medium">{line.category}</span>
-          <div className="ml-2">{renderAmounts(line.amounts)}</div>
-        </div>
-      ))}
+          return (
+            <tbody key={key}>
+              <tr className="border-t border-border bg-muted/50">
+                <td colSpan={3} className="p-0">
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    onClick={() => toggle(key)}
+                    className="flex w-full cursor-pointer flex-wrap items-center gap-2 px-3 py-2 text-left"
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "size-4 shrink-0 text-muted-foreground transition-transform",
+                        !isOpen && "-rotate-90"
+                      )}
+                    />
+                    <span className="font-semibold">{section.title}</span>
+                    {section.rating ? (
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs font-semibold",
+                          ratingTones[section.rating] ?? "border-border text-muted-foreground",
+                        )}
+                      >
+                        Calificación {ratingLabels[section.rating] ?? section.rating}
+                      </span>
+                    ) : null}
+                  </button>
+                </td>
+              </tr>
+              {!isOpen ? null : section.rows.length ? (
+                section.rows.map((row, index) => (
+                  <tr
+                    key={`${key}-${row.label}-${index}`}
+                    className="border-t border-border/50"
+                  >
+                    <td className="py-1.5 pl-9 pr-3">{row.label}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">
+                      {formatNumber(row.mn)}
+                    </td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">
+                      {formatNumber(row.me)}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr className="border-t border-border/50">
+                  <td colSpan={3} className="py-1.5 pl-9 pr-3 text-xs text-muted-foreground">
+                    Sin deudas informadas
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          )
+        })}
+      </table>
     </div>
   )
 }
@@ -270,45 +404,7 @@ function PeriodReport({
   report: DebtorReportDto
   defaultOpen?: boolean
 }) {
-  const totalsColumns = useMemo<ColumnDef<DebtCategoryLineDto>[]>(
-    () => [
-      {
-        accessorKey: "category",
-        header: "Categoria",
-      },
-      {
-        id: "amounts",
-        header: "Montos",
-        cell: ({ row }) => renderAmounts(row.original.amounts),
-      },
-    ],
-    [],
-  )
-
-  const institutionColumns = useMemo<ColumnDef<InstitutionDebtDto>[]>(
-    () => [
-      {
-        accessorKey: "institutionName",
-        header: "Institucion",
-      },
-      {
-        accessorKey: "institutionCode",
-        header: "Codigo",
-        cell: ({ row }) => row.original.institutionCode ?? "-",
-      },
-      {
-        accessorKey: "rating",
-        header: "Calificacion",
-        cell: ({ row }) => <Badge variant="outline">{row.original.rating}</Badge>,
-      },
-      {
-        id: "lines",
-        header: "Lineas por categoria",
-        cell: ({ row }) => renderCategoryLines(row.original.lines),
-      },
-    ],
-    [],
-  )
+  const sections = useMemo(() => buildSections(report), [report])
 
   return (
     <Card className="border border-border">
@@ -327,28 +423,25 @@ function PeriodReport({
               Periodo {report.period}
               <CacheSourceIndicator fromCache={report.fromCache} />
             </CardTitle>
-            <CardDescription>Generado: {formatInstant(report.generatedAt)}</CardDescription>
+            <CardDescription>
+              Generado: {formatInstant(report.generatedAt)}
+              {report.exchangeRate != null
+                ? ` · Tipo de cambio: ${report.exchangeRate.toLocaleString("es-UY")}`
+                : null}
+            </CardDescription>
           </CardHeader>
         </CollapsibleTrigger>
         <CollapsiblePanel>
           <CardContent className="space-y-5 pt-4">
             <div>
-              <p className="mb-2 text-sm font-medium">Totales</p>
-              <DataTable
-                columns={totalsColumns}
-                data={report.totals}
-                emptyMessage="Sin totales para este periodo"
-                getRowId={(row, index) => `${row.category}-${index}`}
-              />
-            </div>
-            <div>
-              <p className="mb-2 text-sm font-medium">Instituciones</p>
-              <DataTable
-                columns={institutionColumns}
-                data={report.institutions}
-                emptyMessage="Sin instituciones reportantes para este periodo"
-                getRowId={(row, index) => `${row.institutionName}-${index}`}
-              />
+              <p className="mb-2 text-sm font-medium">Deudas por rubro</p>
+              {report.institutions.length ? (
+                <RubroTable sections={sections} />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Sin instituciones reportantes para este periodo
+                </p>
+              )}
             </div>
           </CardContent>
         </CollapsiblePanel>

@@ -158,6 +158,10 @@ export type DebtCategory =
   | "PROVISIONS"
 
 export interface DebtCategoryLineDto {
+  // Exact BCU rubro (e.g. "CASTIGADO_ATRASO") with its Spanish display name.
+  // Null on aggregated totals lines and on reports cached before concepts existed.
+  concept?: string | null
+  conceptDescription?: string | null
   category: DebtCategory | string
   amounts: AmountByCurrencyDto
 }
@@ -182,6 +186,9 @@ export interface InstitutionDebtDto {
 
 export interface DebtorReportDto {
   period: string
+  // Pesos-per-USD rate of the period as reported by BCU; null when absent or
+  // on reports cached before the field existed.
+  exchangeRate?: number | null
   totals: DebtCategoryLineDto[]
   institutions: InstitutionDebtDto[]
   generatedAt: string
